@@ -34,15 +34,20 @@ const CONFIG = {
     { title: "Bank Transfer (Naira)", bank: "Bank name coming soon", account: "0000000000", holder: "Account name" },
   ],
 
-  galleryImages: [
-    "VSP_4394.jpg","VSP_4398.jpg","VSP_4423.jpg","VSP_4451.jpg","VSP_4455.jpg",
-    "VSP_4472.jpg","VSP_4476.jpg","VSP_4502.jpg","VSP_4524.jpg","VSP_4537.jpg",
-    "VSP_4547.jpg","VSP_4583.jpg","VSP_4601.jpg","VSP_4639.jpg","VSP_4655.jpg",
-    "VSP_4661.jpg","VSP_4674.jpg","VSP_4677.jpg","VSP_4718a.jpg","VSP_4787.jpg",
-    "VSP_5003.jpg","VSP_5018.jpg","VSP_5056.jpg","VSP_5147.jpg","VSP_5166.jpg",
-    "VSP_5201.jpg","VSP_5248.jpg","VSP_5337.jpg",
+  // The 12 curated moments shown first (focal = first entry, ring = the rest)
+  curatedMoments: [
+    "VSP_4677.jpg","VSP_4423.jpg","VSP_4787.jpg","VSP_5003.jpg","VSP_4394.jpg",
+    "VSP_4502.jpg","VSP_4547.jpg","VSP_4583.jpg","VSP_4601.jpg","VSP_5018.jpg",
+    "VSP_5248.jpg","VSP_5337.jpg","VSP_4472.jpg",
   ],
-  randomImages: [
+  // The rest of the editorial shoot — pops into the orbit over time
+  orbitPool: [
+    "VSP_4398.jpg","VSP_4451.jpg","VSP_4455.jpg","VSP_4476.jpg","VSP_4524.jpg",
+    "VSP_4537.jpg","VSP_4639.jpg","VSP_4655.jpg","VSP_4661.jpg","VSP_4674.jpg",
+    "VSP_4718a.jpg","VSP_5056.jpg","VSP_5147.jpg","VSP_5166.jpg","VSP_5201.jpg",
+  ],
+  // Casual shots in the vintage film strip
+  filmstripImages: [
     "IMG_5872.jpg","IMG_5873.jpg","IMG_5874.jpg","IMG_5875.jpg","IMG_5876.jpg",
     "IMG_5877.jpg","IMG_5878.jpg","IMG_5879.jpg","IMG_5880.jpg","IMG_5881.jpg","IMG_5882.jpg",
   ],
@@ -96,18 +101,8 @@ document.getElementById("giftingGrid").innerHTML = CONFIG.gifts
   .map(g => `<div class="gift-card"><h4>${g.title}</h4><p class="bank">${g.bank}</p><p class="acct">${g.account}</p><p class="holder">${g.holder}</p></div>`)
   .join("");
 
-/* ── Gallery + lightbox ── */
-const galleryGrid = document.getElementById("galleryGrid");
-const randomsStrip = document.getElementById("randomsStrip");
-const allImages = [...CONFIG.galleryImages, ...CONFIG.randomImages];
-
-galleryGrid.innerHTML = CONFIG.galleryImages
-  .map((f, i) => `<a href="${IMG_BASE + f}" data-index="${i}"><img src="${IMG_BASE + f}" alt="Gabriella and Victor" loading="lazy"></a>`)
-  .join("");
-randomsStrip.innerHTML = CONFIG.randomImages
-  .map((f, i) => `<a href="${IMG_BASE + f}" data-index="${CONFIG.galleryImages.length + i}"><img src="${IMG_BASE + f}" alt="Gabriella and Victor" loading="lazy"></a>`)
-  .join("");
-
+/* ── Lightbox (navigates across every photo) ── */
+const allImages = [...CONFIG.curatedMoments, ...CONFIG.orbitPool, ...CONFIG.filmstripImages];
 const lightbox = document.getElementById("lightbox");
 const lightboxImg = document.getElementById("lightboxImg");
 let lbIndex = 0;
@@ -121,12 +116,6 @@ function hideLightbox() {
   lightbox.hidden = true;
   document.body.classList.remove("no-scroll");
 }
-document.querySelectorAll("#galleryGrid a, #randomsStrip a").forEach(a =>
-  a.addEventListener("click", e => {
-    e.preventDefault();
-    showLightbox(Number(a.dataset.index));
-  })
-);
 document.getElementById("lightboxClose").addEventListener("click", hideLightbox);
 document.getElementById("lightboxPrev").addEventListener("click", () => showLightbox(lbIndex - 1));
 document.getElementById("lightboxNext").addEventListener("click", () => showLightbox(lbIndex + 1));
@@ -137,6 +126,156 @@ addEventListener("keydown", e => {
   if (e.key === "ArrowLeft") showLightbox(lbIndex - 1);
   if (e.key === "ArrowRight") showLightbox(lbIndex + 1);
 });
+
+/* ── Orbit gallery ── */
+const orbitStage = document.getElementById("orbitStage");
+const orbitRing = document.getElementById("orbitRing");
+const orbitFocal = document.getElementById("orbitFocal");
+const orbitCaption = document.getElementById("orbitCaption");
+const SLOTS = 12;
+const reducedMotion = matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+const orbitTotal = CONFIG.curatedMoments.length + CONFIG.orbitPool.length;
+let focalSrc = CONFIG.curatedMoments[0];
+const slotSrcs = CONFIG.curatedMoments.slice(1, 1 + SLOTS);
+// Shuffled queue of everything not currently visible — the "fresh photos" pool
+let queue = shuffle([...CONFIG.orbitPool]);
+const seen = new Set([focalSrc, ...slotSrcs]);
+
+function shuffle(a) {
+  for (let i = a.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [a[i], a[j]] = [a[j], a[i]];
+  }
+  return a;
+}
+
+orbitRing.innerHTML = slotSrcs
+  .map((f, i) => `<button class="orbit-item" data-slot="${i}" type="button" aria-label="Bring photo forward"><img src="${IMG_BASE + f}" alt="Gabriella and Victor"></button>`)
+  .join("");
+const slotEls = [...orbitRing.querySelectorAll(".orbit-item")];
+orbitFocal.querySelector("img").src = IMG_BASE + focalSrc;
+
+function updateCaption() {
+  orbitCaption.textContent = `Moment ${seen.size} · of ${orbitTotal}`;
+}
+updateCaption();
+
+/* Ring placement — JS-driven angle so auto-spin, hover-pause and drag share one state.
+   Items get rotate(a) translate(R) rotate(-a) so the photos stay upright. */
+let ringAngle = 0;
+let velocity = reducedMotion ? 0 : 0.045; // deg per frame ≈ 1 rev / 130s
+const BASE_VELOCITY = velocity;
+let paused = false;
+let dragging = false;
+
+function layout() {
+  const radius = orbitStage.clientWidth * 0.41;
+  const visible = slotEls.filter(el => getComputedStyle(el).display !== "none");
+  const step = 360 / visible.length;
+  visible.forEach((el, i) => {
+    const a = ringAngle + i * step;
+    el.style.transform = `rotate(${a}deg) translate(${radius}px) rotate(${-a}deg)`;
+  });
+}
+function frame() {
+  if (!dragging && !paused && velocity) ringAngle = (ringAngle + velocity) % 360;
+  // inertia decay back toward the gentle base spin
+  if (!dragging && Math.abs(velocity) > Math.abs(BASE_VELOCITY)) velocity *= 0.96;
+  layout();
+  requestAnimationFrame(frame);
+}
+requestAnimationFrame(frame);
+addEventListener("resize", layout);
+
+orbitStage.addEventListener("mouseenter", () => { paused = true; });
+orbitStage.addEventListener("mouseleave", () => { paused = false; });
+
+/* Drag to spin (pointer events cover touch + mouse) */
+let lastX = 0, movedFar = false;
+orbitStage.addEventListener("pointerdown", e => {
+  dragging = true; movedFar = false; lastX = e.clientX;
+});
+addEventListener("pointermove", e => {
+  if (!dragging) return;
+  const dx = e.clientX - lastX;
+  lastX = e.clientX;
+  if (Math.abs(dx) > 2) movedFar = true;
+  ringAngle = (ringAngle + dx * 0.35) % 360;
+  velocity = Math.max(-2.5, Math.min(2.5, dx * 0.12)) || BASE_VELOCITY;
+});
+addEventListener("pointerup", () => {
+  if (dragging) { dragging = false; nudgePop(); }
+});
+
+/* Living pool — pop a fresh, unseen photo into a slot. No repeats on screen:
+   the outgoing photo goes to the back of the queue, the incoming one leaves it. */
+let slotCursor = 0;
+function popIn() {
+  if (!queue.length) return;
+  const el = slotEls[slotCursor % slotEls.length];
+  slotCursor++;
+  const img = el.querySelector("img");
+  const outgoing = img.src.split("/").pop();
+  const incoming = queue.shift();
+  queue.push(outgoing);
+  seen.add(incoming);
+  img.classList.add("fading");
+  setTimeout(() => {
+    img.src = IMG_BASE + incoming;
+    img.classList.remove("fading");
+    el.classList.add("popping");
+    setTimeout(() => el.classList.remove("popping"), 550);
+    updateCaption();
+  }, 450);
+}
+let popTimer = null;
+function schedulePops(interval) {
+  clearInterval(popTimer);
+  if (reducedMotion) return;
+  popTimer = setInterval(popIn, interval);
+}
+schedulePops(5200);
+// interaction accelerates fresh photos briefly
+function nudgePop() {
+  popIn();
+  schedulePops(2600);
+  setTimeout(() => schedulePops(5200), 9000);
+}
+
+/* Tap to promote — orbit photo swaps into the focal circle */
+slotEls.forEach(el =>
+  el.addEventListener("click", () => {
+    if (movedFar) return; // was a drag, not a tap
+    const img = el.querySelector("img");
+    const promoted = img.src.split("/").pop();
+    const demoted = focalSrc;
+    focalSrc = promoted;
+    const focalImg = orbitFocal.querySelector("img");
+    focalImg.classList.add("fading");
+    img.classList.add("fading");
+    setTimeout(() => {
+      focalImg.src = IMG_BASE + promoted;
+      img.src = IMG_BASE + demoted;
+      focalImg.classList.remove("fading");
+      img.classList.remove("fading");
+    }, 450);
+  })
+);
+orbitFocal.addEventListener("click", () => {
+  if (movedFar) return;
+  showLightbox(allImages.indexOf(focalSrc));
+});
+
+/* ── Vintage film strip ── */
+const track = document.getElementById("filmstripTrack");
+const frameHTML = CONFIG.filmstripImages
+  .map(f => `<button class="film-frame" data-src="${f}" type="button" aria-label="View photo full size"><img src="${IMG_BASE + f}" alt="Gabriella and Victor" loading="lazy"></button>`)
+  .join("");
+track.innerHTML = frameHTML + frameHTML; // duplicated for a seamless loop
+track.querySelectorAll(".film-frame").forEach(fr =>
+  fr.addEventListener("click", () => showLightbox(allImages.indexOf(fr.dataset.src)))
+);
 
 /* ── Read more ── */
 document.querySelectorAll(".read-more").forEach(btn =>

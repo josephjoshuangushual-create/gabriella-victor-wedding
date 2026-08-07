@@ -117,9 +117,20 @@
 <section class="gallery" id="gallery">
   <p class="eyebrow center">Gallery</p>
   <h2 class="section-title">Moments We Love</h2>
-  <div class="gallery-grid" id="galleryGrid"><!-- populated by JS --></div>
-  <p class="eyebrow center" style="margin-top:4rem">Randomsssss</p>
-  <div class="randoms-strip" id="randomsStrip"><!-- populated by JS --></div>
+  <div class="orbit-wrap">
+    <div class="orbit-stage" id="orbitStage">
+      <button class="orbit-focal" id="orbitFocal" type="button" aria-label="View photo full size">
+        <img src="" alt="Gabriella and Victor — featured moment">
+      </button>
+      <div class="orbit-ring" id="orbitRing"><!-- populated by JS --></div>
+    </div>
+    <p class="orbit-caption" id="orbitCaption"></p>
+    <p class="orbit-hint">Drag to spin · tap a photo to bring it forward</p>
+  </div>
+  <p class="eyebrow center" style="margin-top:5rem">Randomsssss</p>
+  <div class="filmstrip" id="filmstrip">
+    <div class="filmstrip-track" id="filmstripTrack"><!-- populated by JS --></div>
+  </div>
 </section>
 
 <!-- ═══════════ WELL WISHES ═══════════ -->

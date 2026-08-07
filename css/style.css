@@ -173,14 +173,108 @@ section { padding: 6rem 1.5rem; max-width: 1200px; margin: 0 auto; }
 .detour-text strong { color: var(--ink); font-weight: 500; }
 @media (max-width: 800px) { .story-detour { grid-template-columns: 1fr; } }
 
-/* ── Gallery ── */
-.gallery-grid { columns: 3 260px; column-gap: 1rem; }
-.gallery-grid a { display: block; margin-bottom: 1rem; border-radius: 4px; overflow: hidden; break-inside: avoid; }
-.gallery-grid img { width: 100%; transition: transform 0.5s ease, opacity 0.5s ease; }
-.gallery-grid a:hover img { transform: scale(1.03); opacity: 0.92; }
-.randoms-strip { display: flex; gap: 0.9rem; overflow-x: auto; padding: 1.2rem 0 0.6rem; scroll-snap-type: x mandatory; }
-.randoms-strip a { flex: 0 0 200px; scroll-snap-align: start; border-radius: 4px; overflow: hidden; }
-.randoms-strip img { width: 100%; aspect-ratio: 4/5; object-fit: cover; }
+/* ── Orbit gallery ── */
+.orbit-wrap { display: flex; flex-direction: column; align-items: center; }
+.orbit-stage {
+  position: relative;
+  width: min(88vw, 640px);
+  height: min(88vw, 640px);
+  touch-action: pan-y;
+  user-select: none;
+  -webkit-user-select: none;
+}
+.orbit-focal {
+  position: absolute; top: 50%; left: 50%;
+  transform: translate(-50%, -50%);
+  width: 38%; height: 38%;
+  border-radius: 50%; overflow: hidden;
+  border: 2px solid var(--line);
+  padding: 0; background: var(--card);
+  cursor: zoom-in; z-index: 5;
+  box-shadow: 0 0 60px rgba(0, 0, 0, 0.55);
+}
+.orbit-focal img, .orbit-item img {
+  width: 100%; height: 100%; object-fit: cover; display: block;
+  pointer-events: none;
+  transition: opacity 0.45s ease;
+}
+.orbit-focal img.fading, .orbit-item img.fading { opacity: 0; }
+.orbit-ring { position: absolute; inset: 0; }
+.orbit-item {
+  position: absolute; top: 50%; left: 50%;
+  width: 17%; height: 17%;
+  margin: -8.5% 0 0 -8.5%;
+  border-radius: 50%; overflow: hidden;
+  border: 1.5px solid var(--line);
+  padding: 0; background: var(--card);
+  cursor: pointer;
+  transition: box-shadow 0.3s ease;
+}
+.orbit-item:hover { box-shadow: 0 0 26px rgba(156, 175, 136, 0.45); }
+.orbit-item.popping { animation: orbitPop 0.5s ease; }
+@keyframes orbitPop {
+  0% { scale: 0.3; opacity: 0; }
+  100% { scale: 1; opacity: 1; }
+}
+.orbit-caption {
+  margin-top: 1.6rem;
+  font-family: var(--serif); font-style: italic;
+  font-size: 1.05rem; color: var(--ink-dim);
+}
+.orbit-hint { margin-top: 0.4rem; font-size: 0.68rem; letter-spacing: 0.26em; text-transform: uppercase; color: var(--ink-dim); opacity: 0.7; }
+@media (max-width: 480px) {
+  .orbit-item:nth-child(n + 9) { display: none; }
+}
+
+/* ── Vintage film strip ── */
+.filmstrip {
+  margin-top: 1.6rem;
+  background: #14110d;
+  border-top: 1px solid var(--line); border-bottom: 1px solid var(--line);
+  padding: 26px 0;
+  overflow: hidden;
+  position: relative;
+}
+.filmstrip::before, .filmstrip::after {
+  content: ""; position: absolute; left: 0; right: 0; height: 14px; z-index: 2;
+  background-image: radial-gradient(circle at 8px 7px, #efe9dd 4px, transparent 4.6px);
+  background-size: 34px 14px;
+  background-repeat: repeat-x;
+  opacity: 0.85;
+}
+.filmstrip::before { top: 6px; }
+.filmstrip::after { bottom: 6px; }
+.filmstrip-track {
+  display: flex; gap: 1.3rem; width: max-content;
+  padding: 0.6rem 0;
+  animation: filmscroll 55s linear infinite;
+}
+.filmstrip:hover .filmstrip-track { animation-play-state: paused; }
+@keyframes filmscroll {
+  from { transform: translateX(-50%); }
+  to { transform: translateX(0); }
+}
+.film-frame {
+  flex: 0 0 168px;
+  background: #efe9dd;
+  padding: 8px 8px 22px;
+  border-radius: 2px;
+  cursor: pointer; border: none;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.45);
+}
+.film-frame:nth-child(3n) { rotate: 1.4deg; }
+.film-frame:nth-child(3n + 1) { rotate: -1.2deg; }
+.film-frame:nth-child(4n) { rotate: 0.6deg; }
+.film-frame img {
+  width: 100%; aspect-ratio: 4 / 5; object-fit: cover;
+  filter: sepia(0.45) contrast(0.92) saturate(0.7);
+  pointer-events: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .filmstrip-track { animation: none; }
+  .marquee-track { animation: none; }
+}
 
 /* ── Wishes ── */
 .wishes-wall { columns: 3 260px; column-gap: 1.2rem; margin-bottom: 3rem; }
