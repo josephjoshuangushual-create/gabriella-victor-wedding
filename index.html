@@ -1,0 +1,261 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Gabriella &amp; Victor — Of Grace &amp; Love</title>
+<meta name="description" content="Welcome to Gabriella & Victor's wedding website. Our story, gallery, schedule, RSVP and more. #OfGraceAndLove">
+<meta property="og:title" content="Gabriella & Victor — Of Grace & Love">
+<meta property="og:description" content="We are getting married! Read our story, RSVP, and celebrate with us.">
+<meta property="og:image" content="assets/img/web/hero_VSP_4423.jpg">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;1,400;1,500&family=Jost:wght@300;400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="css/style.css">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='0.9em' font-size='90'>🤍</text></svg>">
+</head>
+<body class="no-scroll">
+
+<!-- ═══════════ WELCOME OVERLAY ═══════════ -->
+<div class="welcome-overlay" id="welcomeOverlay">
+  <div class="welcome-card">
+    <p class="eyebrow">A Note From The Couple</p>
+    <svg class="heart-flourish" viewBox="0 0 200 40" fill="none" stroke="currentColor" stroke-width="1.2">
+      <path d="M5 25 C40 25, 60 25, 85 22 C92 14, 97 10, 100 14 C103 10, 108 14, 106 19 C104 24, 98 27, 94 24 C90 27, 100 25, 115 23 C145 21, 170 22, 195 24"/>
+    </svg>
+    <h2>Welcome to Gabriella &amp; Victor&rsquo;s<br>Wedding Website</h2>
+    <p class="welcome-body">We&rsquo;re so grateful to have you here! Somehow, we just couldn&rsquo;t picture a life without each other &mdash; and now we&rsquo;re counting down to the beautiful day we say our &ldquo;yeses&rdquo; in front of God and the amazing people in our lives. That means you.</p>
+    <p class="welcome-remind"><em>Please remember to RSVP</em></p>
+    <p class="welcome-body small">Your confirmation helps us prepare properly and make the day seamless and memorable for everyone.</p>
+    <button class="btn btn-dark" id="openSiteBtn" type="button">Open Our Website</button>
+  </div>
+</div>
+
+<!-- ═══════════ NAV ═══════════ -->
+<header class="site-nav" id="siteNav">
+  <nav>
+    <a href="#story">Our Story</a>
+    <a href="#gallery">Gallery</a>
+    <a href="#wishes">Well Wishes</a>
+    <a href="#schedule">Schedule</a>
+    <a href="#faq">Q&amp;A</a>
+    <a href="#rsvp">RSVP</a>
+    <a href="#gifting">Gifting</a>
+  </nav>
+  <button class="nav-toggle" id="navToggle" aria-label="Menu"><span></span><span></span><span></span></button>
+</header>
+
+<!-- ═══════════ HERO ═══════════ -->
+<section class="hero" id="home">
+  <div class="hero-bg" style="background-image:url('assets/img/web/hero_VSP_4423.jpg')"></div>
+  <div class="hero-shade"></div>
+  <div class="countdown" id="countdown" aria-label="Countdown to the wedding">
+    <div><span id="cdD">0</span><small>D</small></div>
+    <div><span id="cdH">0</span><small>H</small></div>
+    <div><span id="cdM">0</span><small>M</small></div>
+    <div><span id="cdS">0</span><small>S</small></div>
+  </div>
+  <div class="hero-content">
+    <p class="hero-kicker">We are getting married</p>
+    <h1 class="hero-tag" id="heroTag">#OfGraceAndLove</h1>
+    <p class="hero-names">Gabriella&ensp;&amp;&ensp;Victor</p>
+    <p class="hero-date" id="heroDate"><!-- set by JS from CONFIG --></p>
+    <div class="hero-ctas">
+      <a class="btn btn-outline" href="#rsvp">RSVP</a>
+      <a class="btn btn-outline" href="#gifting">Gifting</a>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════════ OUR STORY ═══════════ -->
+<section class="story" id="story">
+  <p class="eyebrow center">Our Story</p>
+  <h2 class="section-title">Of Grace &amp; Love</h2>
+  <blockquote class="story-quote">
+    &ldquo;Someday in your life, you&rsquo;ll meet someone who would cause your whole world to pause.
+    Please don&rsquo;t hurry to press play.&rdquo;
+  </blockquote>
+
+  <div class="story-grid">
+    <article class="story-card">
+      <div class="story-photo"><img src="assets/img/web/VSP_4787.jpg" alt="Victor and Gabriella" loading="lazy"></div>
+      <p class="eyebrow">The Groom</p>
+      <h3>Victor</h3>
+      <div class="story-text" data-collapsed>
+        <p>Boy sees girl in a service in church; girl gets boy&rsquo;s attention.</p>
+        <p>In the busyness of life, God smiles on us in human forms. Enjoying the moment and savoring the gift of her presence, Gabriella is my God&rsquo;s smile in human form.</p>
+      </div>
+      <button class="read-more" type="button">Read More</button>
+    </article>
+
+    <article class="story-card">
+      <div class="story-photo"><img src="assets/img/web/VSP_5003.jpg" alt="Gabriella and Victor" loading="lazy"></div>
+      <p class="eyebrow">The Bride</p>
+      <h3>Gabriella</h3>
+      <div class="story-text" data-collapsed>
+        <p>One day, a warm smile, a kind gesture, a friendly visit, two canvases, some paint, and brushes began to feel like home.</p>
+        <p>Someday, a young man will abruptly tell you he sees a future with you and none without you&hellip; Believe him. Victor is a reminder of God&rsquo;s unwavering, undoubted love for me.</p>
+      </div>
+      <button class="read-more" type="button">Read More</button>
+    </article>
+  </div>
+
+  <div class="story-detour">
+    <div class="detour-photo"><img src="assets/img/web/VSP_4677.jpg" alt="Gabriella and Victor by the water" loading="lazy"></div>
+    <div class="detour-text">
+      <p class="eyebrow">The Detour &amp; The Grace</p>
+      <p>Our story began beautifully, as our friendship grew quickly. But then came the tough times &mdash; everything seemed to halt. We both went our separate ways, thinking it simply wasn&rsquo;t meant to be.</p>
+      <p>But as life happened, <strong>GOD also happened.</strong> Somehow, we just couldn&rsquo;t picture a life without each other. Gracefully, we found our way back after months of mere cordial hellos.</p>
+      <p>One of the greatest blessings of our relationship is this genuine, deep friendship we share and are so grateful for.</p>
+      <p class="eyebrow" style="margin-top:2rem">Our Calling</p>
+      <p>Beyond our love for one another, we share a deep sense of purpose. We believe we are called together to reach, rescue, and deliver teenagers and young adults from darkness into God&rsquo;s brilliant light. We look forward to the beautiful day where we will say our &ldquo;yeses&rdquo; in front of God and the amazing people in our lives, stepping forward into this shared mission hand-in-hand.</p>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════════ GALLERY ═══════════ -->
+<section class="gallery" id="gallery">
+  <p class="eyebrow center">Gallery</p>
+  <h2 class="section-title">Moments We Love</h2>
+  <div class="gallery-grid" id="galleryGrid"><!-- populated by JS --></div>
+  <p class="eyebrow center" style="margin-top:4rem">Randomsssss</p>
+  <div class="randoms-strip" id="randomsStrip"><!-- populated by JS --></div>
+</section>
+
+<!-- ═══════════ WELL WISHES ═══════════ -->
+<section class="wishes" id="wishes">
+  <p class="eyebrow center">Well Wishes</p>
+  <h2 class="section-title">Words From Our People</h2>
+  <div class="wishes-wall" id="wishesWall">
+    <p class="wishes-empty">Be the first to leave the couple a wish 🤍</p>
+  </div>
+  <form class="card-form" id="wishForm">
+    <h3>Post a Wish</h3>
+    <div class="field"><label for="wishName">Your Name</label><input id="wishName" name="name" type="text" required maxlength="60"></div>
+    <div class="field"><label for="wishMsg">Your Wish</label><textarea id="wishMsg" name="message" rows="4" required maxlength="500"></textarea></div>
+    <button class="btn btn-light" type="submit">Post Wish</button>
+    <p class="form-note" data-form-note></p>
+  </form>
+</section>
+
+<!-- ═══════════ SCHEDULE ═══════════ -->
+<section class="schedule" id="schedule">
+  <p class="eyebrow center">The Schedule</p>
+  <h2 class="section-title">The Big Day</h2>
+  <div class="schedule-grid">
+
+    <article class="event-card">
+      <p class="eyebrow">Event #1</p>
+      <h3>Church Wedding</h3>
+      <dl>
+        <div><dt>Date &amp; Time</dt><dd id="churchDate">To be announced</dd></div>
+        <div><dt>Venue</dt><dd id="churchVenue">To be announced</dd></div>
+        <div><dt>Dress Theme</dt><dd id="churchDress">To be announced</dd></div>
+      </dl>
+    </article>
+
+    <article class="event-card">
+      <p class="eyebrow">Event #2</p>
+      <h3>Reception</h3>
+      <dl>
+        <div><dt>Date &amp; Time</dt><dd id="receptionDate">To be announced</dd></div>
+        <div><dt>Venue</dt><dd id="receptionVenue">To be announced</dd></div>
+        <div><dt>Note</dt><dd id="receptionNote">Details coming soon — check back after you RSVP.</dd></div>
+      </dl>
+    </article>
+
+    <article class="event-card colors-card">
+      <p class="eyebrow">Colors of the Day</p>
+      <h3>Our Palette</h3>
+      <div class="swatches" id="colorSwatches"><!-- populated by JS --></div>
+      <p class="form-note">Guest dress colours will be confirmed alongside the venue details.</p>
+    </article>
+
+  </div>
+</section>
+
+<!-- ═══════════ RSVP ═══════════ -->
+<section class="rsvp" id="rsvp">
+  <p class="eyebrow center">RSVP</p>
+  <h2 class="section-title">Celebrate With Us</h2>
+  <form class="card-form wide" id="rsvpForm">
+    <div class="field-row">
+      <div class="field"><label for="rFirst">First Name</label><input id="rFirst" name="firstName" type="text" required maxlength="40"></div>
+      <div class="field"><label for="rLast">Last Name</label><input id="rLast" name="lastName" type="text" required maxlength="40"></div>
+    </div>
+    <div class="field-row">
+      <div class="field"><label for="rEmail">Email Address</label><input id="rEmail" name="email" type="email" required maxlength="80"></div>
+      <div class="field"><label for="rPhone">Phone Number</label><input id="rPhone" name="phone" type="tel" required maxlength="20"></div>
+    </div>
+    <div class="field-row">
+      <div class="field">
+        <label for="rSide">You are a guest of</label>
+        <select id="rSide" name="side" required>
+          <option value="" disabled selected>Select one</option>
+          <option>The Bride</option>
+          <option>The Groom</option>
+          <option>Both</option>
+        </select>
+      </div>
+      <div class="field">
+        <label for="rAttend">Will you attend?</label>
+        <select id="rAttend" name="attending" required>
+          <option value="" disabled selected>Select one</option>
+          <option>Joyfully accept</option>
+          <option>Regretfully decline</option>
+        </select>
+      </div>
+    </div>
+    <div class="field"><label for="rRel">Relationship to the couple</label><input id="rRel" name="relationship" type="text" maxlength="80" placeholder="e.g. Friend, Colleague, Family"></div>
+    <button class="btn btn-light" type="submit">Submit RSVP</button>
+    <p class="form-note">Tip: once you submit, you will not be able to edit your RSVP details.</p>
+    <p class="form-note" data-form-note></p>
+  </form>
+</section>
+
+<!-- ═══════════ GIFTING ═══════════ -->
+<section class="gifting" id="gifting">
+  <p class="eyebrow center">Gift Us</p>
+  <h2 class="section-title">With Love &amp; Gratitude</h2>
+  <p class="gifting-lead">Your presence is our greatest gift. However, if you would like to support our next chapter, we kindly prefer cash gifts, which are deeply appreciated.</p>
+  <div class="gifting-grid" id="giftingGrid"><!-- populated by JS --></div>
+</section>
+
+<!-- ═══════════ Q&A ═══════════ -->
+<section class="faq" id="faq">
+  <p class="eyebrow center">Questions</p>
+  <h2 class="section-title">Q&amp;A</h2>
+  <div class="faq-list">
+    <details><summary>Is it mandatory to RSVP?</summary><p>Yes, please! Access on the day will be managed with the guest list, and your RSVP helps us plan seating and catering properly.</p></details>
+    <details><summary>Are plus ones or kids allowed?</summary><p>We love your little ones, but we kindly ask that only guests named on the invitation attend. Reach out to us if you'd like to ask about a plus one.</p></details>
+    <details><summary>What is the preferred contact for questions?</summary><p>Please reach the wedding planner via the email in the footer, or message the couple directly.</p></details>
+    <details><summary>What colours are the guests wearing?</summary><p>The colours of the day will be confirmed along with the venue details — check the Schedule section closer to the day.</p></details>
+    <details><summary>What's the dress code?</summary><p>Formal and fabulous. Details will be announced with the dress theme.</p></details>
+    <details><summary>Can I take photos during the ceremony?</summary><p>We kindly ask for an unplugged ceremony — our photographers will capture everything. Feel free to snap away at the reception, and tag <span class="tag-inline">#OfGraceAndLove</span>!</p></details>
+  </div>
+</section>
+
+<!-- ═══════════ FOOTER ═══════════ -->
+<footer class="footer">
+  <div class="marquee" aria-hidden="true">
+    <div class="marquee-track">
+      <span>Gabriella &amp; Victor&ensp;·&ensp;</span><span>Gabriella &amp; Victor&ensp;·&ensp;</span>
+      <span>Gabriella &amp; Victor&ensp;·&ensp;</span><span>Gabriella &amp; Victor&ensp;·&ensp;</span>
+      <span>Gabriella &amp; Victor&ensp;·&ensp;</span><span>Gabriella &amp; Victor&ensp;·&ensp;</span>
+    </div>
+  </div>
+  <p class="footer-contact">Wedding enquiries:&ensp;<a href="mailto:hello@example.com" id="plannerEmail">hello@example.com</a></p>
+  <p class="footer-credit">Made with 🤍 for Gabriella &amp; Victor</p>
+</footer>
+
+<!-- ═══════════ LIGHTBOX ═══════════ -->
+<div class="lightbox" id="lightbox" hidden>
+  <button class="lightbox-close" id="lightboxClose" aria-label="Close">&times;</button>
+  <button class="lightbox-prev" id="lightboxPrev" aria-label="Previous">&#8249;</button>
+  <img id="lightboxImg" src="" alt="Gallery photo">
+  <button class="lightbox-next" id="lightboxNext" aria-label="Next">&#8250;</button>
+</div>
+
+<script src="js/main.js"></script>
+</body>
+</html>
