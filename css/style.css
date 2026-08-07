@@ -14,6 +14,7 @@
 }
 
 * { margin: 0; padding: 0; box-sizing: border-box; }
+[hidden] { display: none !important; }
 html { scroll-behavior: smooth; }
 body {
   background: var(--bg);
@@ -276,15 +277,127 @@ section { padding: 6rem 1.5rem; max-width: 1200px; margin: 0 auto; }
   .marquee-track { animation: none; }
 }
 
-/* ── Wishes ── */
-.wishes-wall { columns: 3 260px; column-gap: 1.2rem; margin-bottom: 3rem; }
-.wish-card {
-  background: var(--card); border: 1px solid var(--line); border-radius: 6px;
-  padding: 1.5rem 1.6rem; margin-bottom: 1.2rem; break-inside: avoid;
+/* ── Polaroid wish wall ── */
+.wishes-lead { text-align: center; color: var(--ink-dim); max-width: 480px; margin: -1rem auto 1.8rem; }
+.wall-actions { text-align: center; margin-bottom: 2.6rem; }
+.wall-actions:last-child { margin: 1rem 0 0; }
+.wishes-wall { columns: 4 210px; column-gap: 1.4rem; margin-bottom: 1rem; }
+.polaroid {
+  background: #efe9dd; color: #2b2620;
+  padding: 10px 10px 14px;
+  margin: 0 auto 1.6rem; break-inside: avoid;
+  border-radius: 2px;
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.5);
+  position: relative;
 }
-.wish-card .wish-name { font-family: var(--sans); font-size: 0.72rem; letter-spacing: 0.24em; text-transform: uppercase; margin-bottom: 0.6rem; }
-.wish-card .wish-msg { font-family: var(--serif); font-size: 1.08rem; color: var(--ink-dim); }
+.polaroid::before {
+  content: ""; position: absolute; top: -9px; left: 50%;
+  translate: -50% 0; rotate: -2deg;
+  width: 74px; height: 20px;
+  background: rgba(214, 199, 167, 0.85);
+  box-shadow: 0 1px 3px rgba(0,0,0,0.18);
+}
+.polaroid:nth-child(3n) { rotate: 1.6deg; }
+.polaroid:nth-child(3n + 1) { rotate: -1.4deg; }
+.polaroid:nth-child(5n) { rotate: 0.7deg; }
+.polaroid.mine { outline: 2px solid var(--sage); outline-offset: 3px; }
+.polaroid .ph { width: 100%; aspect-ratio: 1; object-fit: cover; display: block; background: #d8d0c0; }
+.polaroid .ph-placeholder {
+  width: 100%; aspect-ratio: 1; display: flex; align-items: center; justify-content: center;
+  font-size: 2.2rem; background: linear-gradient(135deg, #9caf88, #6e805f);
+}
+.polaroid .wish-msg { font-family: "Caveat", cursive; font-size: 1.25rem; line-height: 1.25; margin: 0.7rem 0.2rem 0.2rem; }
+.polaroid .wish-name { font-family: "Caveat", cursive; font-size: 1rem; color: #6c6455; text-align: right; margin-right: 0.3rem; }
+.polaroid .mine-tag { font-family: var(--sans); font-size: 0.6rem; letter-spacing: 0.2em; text-transform: uppercase; color: var(--sage); position: absolute; top: -26px; left: 0; }
 .wishes-empty { text-align: center; color: var(--ink-dim); font-style: italic; }
+
+/* ── Booth modal ── */
+.booth-overlay {
+  position: fixed; inset: 0; z-index: 95;
+  background: rgba(10, 9, 8, 0.8); backdrop-filter: blur(8px);
+  display: flex; align-items: center; justify-content: center; padding: 1rem;
+}
+.booth-overlay[hidden] { display: none; }
+.booth-card {
+  background: var(--card); border: 1px solid var(--line); border-radius: 8px;
+  width: 100%; max-width: 440px; max-height: 94vh; overflow-y: auto;
+  padding: 2.2rem 1.9rem; text-align: center; position: relative;
+}
+.booth-card h3 { font-family: var(--serif); font-size: 1.6rem; font-weight: 500; margin-bottom: 1.4rem; }
+.booth-close {
+  position: absolute; top: 0.7rem; right: 1rem;
+  background: none; border: none; color: var(--ink); font-size: 1.9rem; cursor: pointer; opacity: 0.7;
+}
+.booth-close:hover { opacity: 1; }
+.booth-stage {
+  position: relative; border-radius: 6px; overflow: hidden;
+  background: var(--bg-soft); border: 1px dashed var(--line);
+  aspect-ratio: 1; max-width: 300px; margin: 0.4rem auto 0.9rem;
+  display: flex; align-items: center; justify-content: center;
+}
+.booth-idle { color: var(--ink-dim); font-size: 0.85rem; padding: 1.4rem; }
+.booth-stage video, .booth-stage img { width: 100%; height: 100%; object-fit: cover; transform: scaleX(-1); }
+.booth-stage img#boothPreview { transform: none; }
+.booth-count {
+  position: absolute; inset: 0; display: flex; align-items: center; justify-content: center;
+  font-family: var(--serif); font-size: 5rem; color: #fff;
+  background: rgba(0, 0, 0, 0.25); text-shadow: 0 2px 14px rgba(0,0,0,0.6);
+}
+.booth-flash { position: absolute; inset: 0; background: #fff; opacity: 0; pointer-events: none; }
+.booth-flash.go { animation: flash 0.5s ease; }
+@keyframes flash { 0% { opacity: 0.95; } 100% { opacity: 0; } }
+.booth-controls { display: flex; gap: 0.6rem; justify-content: center; flex-wrap: wrap; margin-bottom: 1.2rem; }
+.btn.sm { padding: 0.6rem 1.3rem; font-size: 0.68rem; }
+.booth-upload { display: inline-block; }
+
+/* ── The Third Canvas ── */
+.tc-lead {
+  max-width: 620px; margin: -0.6rem auto 2.6rem; text-align: center;
+  color: var(--ink-dim); font-family: var(--serif); font-style: italic; font-size: 1.12rem;
+}
+.tc-frame {
+  position: relative; max-width: 860px; margin: 0 auto;
+  background: #efe9dd; padding: 14px;
+  border-radius: 3px; box-shadow: 0 10px 40px rgba(0, 0, 0, 0.55);
+}
+.tc-frame canvas {
+  width: 100%; display: block; aspect-ratio: 3 / 2;
+  background: #f6f1e7; border-radius: 2px;
+  cursor: crosshair; touch-action: none;
+}
+.tc-tooltip {
+  position: absolute; z-index: 4; pointer-events: none;
+  background: rgba(20, 17, 13, 0.92); color: var(--ink);
+  font-family: "Caveat", cursive; font-size: 1.1rem;
+  padding: 0.25rem 0.8rem; border-radius: 999px; white-space: nowrap;
+  translate: -50% -130%;
+}
+.tc-caption { text-align: center; margin-top: 1.4rem; font-family: var(--serif); font-style: italic; color: var(--ink-dim); }
+.tc-tools { max-width: 640px; margin: 1.8rem auto 0; text-align: center; }
+.tc-palette { display: flex; gap: 0.9rem; justify-content: center; flex-wrap: wrap; }
+.tc-swatch {
+  width: 40px; height: 40px; border-radius: 50%;
+  border: 2px solid transparent; cursor: pointer; padding: 0;
+  transition: scale 0.15s ease;
+}
+.tc-swatch.active { border-color: var(--ink); scale: 1.15; }
+.tc-sizes { display: flex; gap: 0.9rem; justify-content: center; margin-top: 1rem; }
+.tc-size {
+  background: var(--card); border: 1px solid var(--line); border-radius: 50%;
+  width: 42px; height: 42px; cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+}
+.tc-size i { background: var(--ink); border-radius: 50%; display: block; }
+.tc-size.active { border-color: var(--sage); }
+.tc-actions { display: flex; gap: 0.7rem; justify-content: center; align-items: center; flex-wrap: wrap; margin-top: 1.3rem; }
+.tc-actions input {
+  background: var(--bg-soft); border: 1px solid var(--line); border-radius: 999px;
+  color: var(--ink); font-family: var(--sans); font-weight: 300;
+  padding: 0.6rem 1.2rem; outline: none; width: 180px;
+}
+.tc-actions input:focus { border-color: var(--sage); }
+.tc-done { text-align: center; font-family: var(--serif); font-style: italic; font-size: 1.25rem; margin-top: 1.6rem; }
+.btn:disabled { opacity: 0.45; cursor: not-allowed; }
 
 /* ── Forms ── */
 .card-form {

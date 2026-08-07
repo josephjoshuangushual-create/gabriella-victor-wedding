@@ -10,7 +10,7 @@
 <meta property="og:image" content="assets/img/web/hero_VSP_4423.jpg">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;1,400;1,500&family=Jost:wght@300;400;500&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;1,400;1,500&family=Jost:wght@300;400;500&family=Caveat:wght@400;600&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="css/style.css">
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='0.9em' font-size='90'>🤍</text></svg>">
 </head>
@@ -37,6 +37,7 @@
     <a href="#story">Our Story</a>
     <a href="#gallery">Gallery</a>
     <a href="#wishes">Well Wishes</a>
+    <a href="#canvas">The Canvas</a>
     <a href="#schedule">Schedule</a>
     <a href="#faq">Q&amp;A</a>
     <a href="#rsvp">RSVP</a>
@@ -133,20 +134,68 @@
   </div>
 </section>
 
-<!-- ═══════════ WELL WISHES ═══════════ -->
+<!-- ═══════════ WELL WISHES — POLAROID WALL ═══════════ -->
 <section class="wishes" id="wishes">
   <p class="eyebrow center">Well Wishes</p>
-  <h2 class="section-title">Words From Our People</h2>
+  <h2 class="section-title">Faces &amp; Words We Love</h2>
+  <p class="wishes-lead">Leave the couple a wish — and a selfie, so your face hangs on their wall forever.</p>
+  <div class="wall-actions">
+    <button class="btn btn-light" id="openBoothBtn" type="button">Post a Wish 📸</button>
+  </div>
   <div class="wishes-wall" id="wishesWall">
     <p class="wishes-empty">Be the first to leave the couple a wish 🤍</p>
   </div>
-  <form class="card-form" id="wishForm">
-    <h3>Post a Wish</h3>
+  <div class="wall-actions"><button class="btn btn-outline" id="loadMoreWishes" type="button" hidden>Show more wishes</button></div>
+</section>
+
+<!-- Booth modal -->
+<div class="booth-overlay" id="boothModal" hidden>
+  <form class="booth-card" id="wishForm">
+    <button class="booth-close" id="boothClose" type="button" aria-label="Close">&times;</button>
+    <h3>Your Wish for the Wall</h3>
     <div class="field"><label for="wishName">Your Name</label><input id="wishName" name="name" type="text" required maxlength="60"></div>
-    <div class="field"><label for="wishMsg">Your Wish</label><textarea id="wishMsg" name="message" rows="4" required maxlength="500"></textarea></div>
-    <button class="btn btn-light" type="submit">Post Wish</button>
+    <div class="field"><label for="wishMsg">Your Wish</label><textarea id="wishMsg" name="message" rows="3" required maxlength="400"></textarea></div>
+
+    <div class="booth-stage" id="boothStage">
+      <p class="booth-idle" id="boothIdle">Add a selfie to your polaroid — optional, but iconic.</p>
+      <video id="boothVideo" autoplay playsinline muted hidden></video>
+      <img id="boothPreview" alt="Your selfie preview" hidden>
+      <div class="booth-count" id="boothCount" hidden></div>
+      <div class="booth-flash" id="boothFlash"></div>
+    </div>
+    <div class="booth-controls">
+      <button class="btn btn-outline sm" id="boothStart" type="button">Open Camera 📸</button>
+      <button class="btn btn-light sm" id="boothSnap" type="button" hidden>Snap · 3 2 1</button>
+      <button class="btn btn-outline sm" id="boothRetake" type="button" hidden>Retake</button>
+      <label class="btn btn-outline sm booth-upload" id="boothUploadLabel" hidden>Upload a photo<input type="file" id="boothFile" accept="image/*" capture="user" hidden></label>
+    </div>
+
+    <button class="btn btn-light" type="submit">Post to the Wall</button>
     <p class="form-note" data-form-note></p>
   </form>
+</div>
+
+<!-- ═══════════ THE THIRD CANVAS ═══════════ -->
+<section class="tcanvas" id="canvas">
+  <p class="eyebrow center">The Third Canvas</p>
+  <h2 class="section-title">Painted By Our People</h2>
+  <p class="tc-lead">&ldquo;Two canvases, some paint, and brushes began to feel like home.&rdquo; Our story started with two canvases &mdash; this third one belongs to you. Leave a single brushstroke, and by the wedding day the people we love will have painted us something no artist could.</p>
+  <div class="tc-frame">
+    <canvas id="thirdCanvas"></canvas>
+    <div class="tc-tooltip" id="tcTooltip" hidden></div>
+  </div>
+  <p class="tc-caption" id="tcCaption">Loading the painting…</p>
+  <div class="tc-tools" id="tcTools">
+    <div class="tc-palette" id="tcPalette"></div>
+    <div class="tc-sizes" id="tcSizes"></div>
+    <div class="tc-actions">
+      <button class="btn btn-outline sm" id="tcUndo" type="button" disabled>Undo stroke</button>
+      <input id="tcName" type="text" maxlength="40" placeholder="Sign your name">
+      <button class="btn btn-light sm" id="tcSign" type="button" disabled>Sign &amp; add it</button>
+    </div>
+    <p class="form-note" id="tcNote">Pick a colour, then paint one stroke on the canvas.</p>
+  </div>
+  <p class="tc-done" id="tcDone" hidden>You&rsquo;re part of the painting 🤍</p>
 </section>
 
 <!-- ═══════════ SCHEDULE ═══════════ -->

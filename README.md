@@ -30,7 +30,9 @@ The Q&A answers and story copy are in `index.html` directly.
 3. **Deploy → New deployment → Web app**, execute as **Me**, access **Anyone**. Copy the Web App URL.
 4. Paste that URL into `CONFIG.scriptUrl` in `js/main.js` and push.
 
-RSVPs land in the "RSVP" tab, wishes in the "Wishes" tab. Put `no` in a wish's `approved` column to hide it from the site.
+RSVPs land in the "RSVP" tab, wishes in "Wishes", canvas brushstrokes in "Canvas". Guest selfies are saved automatically to a Drive folder named **"GV Wedding Selfies"**. Put `no` in a row's `approved` column (Wishes or Canvas) to hide it from the site.
+
+Built for a big guest list: the script caches reads for 60s and serializes writes with a lock, the wall paginates (24 polaroids at a time, lazy-loaded), and each guest's own wish/stroke shows instantly and is pinned first for them.
 
 ## Deploying
 

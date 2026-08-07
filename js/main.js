@@ -287,26 +287,202 @@ document.querySelectorAll(".read-more").forEach(btn =>
   })
 );
 
-/* ── Well wishes ── */
-const wishesWall = document.getElementById("wishesWall");
-async function loadWishes() {
-  if (!backendReady()) return;
-  try {
-    const res = await fetch(CONFIG.scriptUrl + "?type=wishes");
-    const wishes = await res.json();
-    if (Array.isArray(wishes) && wishes.length) {
-      wishesWall.innerHTML = wishes
-        .map(w => `<div class="wish-card"><p class="wish-name">${esc(w.name)}</p><p class="wish-msg">${esc(w.message)}</p></div>`)
-        .join("");
-    }
-  } catch (err) {
-    /* wall keeps its empty state */
-  }
-}
 function esc(s) {
   return String(s).replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
 }
-loadWishes();
+
+/* ── Polaroid wish wall ──
+   Scales to large guest lists: wishes render in pages of PAGE_SIZE with
+   lazy-loaded images, and nothing is fetched until the section nears the
+   viewport. The visitor's own wish (localStorage) is always pinned first. */
+const wishesWall = document.getElementById("wishesWall");
+const loadMoreBtn = document.getElementById("loadMoreWishes");
+const PAGE_SIZE = 24;
+let allWishes = [];
+let shownCount = 0;
+const myWish = JSON.parse(localStorage.getItem("gv_wish") || "null");
+
+function polaroidHTML(w, mine = false) {
+  const photo = w.photoUrl
+    ? `<img class="ph" src="${esc(w.photoUrl)}" alt="Guest selfie" loading="lazy">`
+    : `<div class="ph-placeholder">🤍</div>`;
+  return `<div class="polaroid${mine ? " mine" : ""}">${mine ? '<span class="mine-tag">Your wish</span>' : ""}${photo}<p class="wish-msg">${esc(w.message)}</p><p class="wish-name">— ${esc(w.name)}</p></div>`;
+}
+
+function renderWall() {
+  const pinned = myWish ? [myWish] : [];
+  const rest = allWishes.filter(w => !myWish || w.name !== myWish.name || w.message !== myWish.message);
+  const visible = rest.slice(0, shownCount);
+  const cards = [...pinned.map(w => polaroidHTML(w, true)), ...visible.map(w => polaroidHTML(w))];
+  wishesWall.innerHTML = cards.length
+    ? cards.join("")
+    : '<p class="wishes-empty">Be the first to leave the couple a wish 🤍</p>';
+  loadMoreBtn.hidden = shownCount >= rest.length;
+}
+
+async function loadWishes() {
+  if (!backendReady()) { renderWall(); return; }
+  try {
+    const res = await fetch(CONFIG.scriptUrl + "?type=wishes");
+    const wishes = await res.json();
+    if (Array.isArray(wishes)) {
+      allWishes = wishes;
+      shownCount = Math.min(PAGE_SIZE, allWishes.length);
+    }
+  } catch (err) { /* wall keeps current state */ }
+  renderWall();
+}
+loadMoreBtn.addEventListener("click", () => {
+  shownCount += PAGE_SIZE;
+  renderWall();
+});
+renderWall();
+// fetch only when the section is close to view — avoids a stampede on page load
+new IntersectionObserver((entries, obs) => {
+  if (entries.some(e => e.isIntersecting)) { loadWishes(); obs.disconnect(); }
+}, { rootMargin: "600px" }).observe(wishesWall);
+
+/* ── Selfie booth ── */
+const boothModal = document.getElementById("boothModal");
+const boothVideo = document.getElementById("boothVideo");
+const boothPreview = document.getElementById("boothPreview");
+const boothIdle = document.getElementById("boothIdle");
+const boothCount = document.getElementById("boothCount");
+const boothFlash = document.getElementById("boothFlash");
+const boothStart = document.getElementById("boothStart");
+const boothSnap = document.getElementById("boothSnap");
+const boothRetake = document.getElementById("boothRetake");
+const boothUploadLabel = document.getElementById("boothUploadLabel");
+const boothFile = document.getElementById("boothFile");
+let boothStream = null;
+let selfieData = null;
+
+document.getElementById("openBoothBtn").addEventListener("click", () => {
+  boothModal.hidden = false;
+  document.body.classList.add("no-scroll");
+});
+function closeBooth() {
+  boothModal.hidden = true;
+  document.body.classList.remove("no-scroll");
+  stopStream();
+}
+document.getElementById("boothClose").addEventListener("click", closeBooth);
+boothModal.addEventListener("click", e => { if (e.target === boothModal) closeBooth(); });
+
+function stopStream() {
+  if (boothStream) { boothStream.getTracks().forEach(t => t.stop()); boothStream = null; }
+  boothVideo.hidden = true;
+}
+function showBoothState({ video = false, preview = false, idle = false }) {
+  boothVideo.hidden = !video;
+  boothPreview.hidden = !preview;
+  boothIdle.hidden = !idle;
+  boothSnap.hidden = !video;
+  boothRetake.hidden = !preview;
+  boothStart.hidden = video || preview;
+}
+boothStart.addEventListener("click", async () => {
+  try {
+    boothStream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "user" } });
+    boothVideo.srcObject = boothStream;
+    showBoothState({ video: true });
+    boothUploadLabel.hidden = true;
+  } catch (err) {
+    // camera denied or unavailable → fall back to the phone's own camera app / file picker
+    boothIdle.textContent = "Camera unavailable here — upload a photo instead.";
+    boothUploadLabel.hidden = false;
+  }
+});
+boothSnap.addEventListener("click", async () => {
+  for (const n of ["3", "2", "1"]) {
+    boothCount.textContent = n;
+    boothCount.hidden = false;
+    await new Promise(r => setTimeout(r, 700));
+  }
+  boothCount.hidden = true;
+  boothFlash.classList.add("go");
+  setTimeout(() => boothFlash.classList.remove("go"), 500);
+  const side = Math.min(boothVideo.videoWidth, boothVideo.videoHeight, 900);
+  const c = document.createElement("canvas");
+  c.width = c.height = side;
+  const ctx = c.getContext("2d");
+  // mirror to match the preview, crop center square
+  const sx = (boothVideo.videoWidth - Math.min(boothVideo.videoWidth, boothVideo.videoHeight)) / 2;
+  const sy = (boothVideo.videoHeight - Math.min(boothVideo.videoWidth, boothVideo.videoHeight)) / 2;
+  ctx.translate(side, 0);
+  ctx.scale(-1, 1);
+  ctx.drawImage(boothVideo, sx, sy, Math.min(boothVideo.videoWidth, boothVideo.videoHeight), Math.min(boothVideo.videoWidth, boothVideo.videoHeight), 0, 0, side, side);
+  selfieData = c.toDataURL("image/jpeg", 0.8);
+  boothPreview.src = selfieData;
+  stopStream();
+  showBoothState({ preview: true });
+});
+boothRetake.addEventListener("click", () => {
+  selfieData = null;
+  showBoothState({ idle: true });
+  boothStart.click();
+});
+boothFile.addEventListener("change", () => {
+  const file = boothFile.files[0];
+  if (!file) return;
+  const img = new Image();
+  img.onload = () => {
+    const side = Math.min(img.width, img.height, 900);
+    const c = document.createElement("canvas");
+    c.width = c.height = side;
+    const sq = Math.min(img.width, img.height);
+    c.getContext("2d").drawImage(img, (img.width - sq) / 2, (img.height - sq) / 2, sq, sq, 0, 0, side, side);
+    selfieData = c.toDataURL("image/jpeg", 0.8);
+    boothPreview.src = selfieData;
+    showBoothState({ preview: true });
+    URL.revokeObjectURL(img.src);
+  };
+  img.src = URL.createObjectURL(file);
+});
+
+/* Wish submission — optimistic: your polaroid appears instantly, pinned first */
+const wishForm = document.getElementById("wishForm");
+wishForm.addEventListener("submit", async e => {
+  e.preventDefault();
+  const note = wishForm.querySelector("[data-form-note]");
+  note.className = "form-note";
+  if (!backendReady()) {
+    note.textContent = "Wishes open soon — please check back shortly!";
+    return;
+  }
+  const btn = wishForm.querySelector("button[type=submit]");
+  btn.disabled = true;
+  note.textContent = "Posting…";
+  try {
+    const data = Object.fromEntries(new FormData(wishForm));
+    data.type = "wish";
+    if (selfieData) data.photo = selfieData;
+    await fetch(CONFIG.scriptUrl, {
+      method: "POST", mode: "no-cors",
+      headers: { "Content-Type": "text/plain" },
+      body: JSON.stringify(data),
+    });
+    const mine = { name: data.name, message: data.message, photoUrl: selfieData || "" };
+    localStorage.setItem("gv_wish", JSON.stringify(mine));
+    allWishes = allWishes.filter(w => w.name !== mine.name || w.message !== mine.message);
+    renderWallWithMine(mine);
+    note.textContent = "You're on the wall! 🤍";
+    note.classList.add("success");
+    setTimeout(closeBooth, 1400);
+    wishForm.reset();
+    selfieData = null;
+    showBoothState({ idle: true });
+  } catch (err) {
+    note.textContent = "Something went wrong — please try again.";
+    note.classList.add("error");
+  } finally {
+    btn.disabled = false;
+  }
+});
+function renderWallWithMine(mine) {
+  const rest = allWishes.slice(0, Math.max(shownCount, PAGE_SIZE));
+  wishesWall.innerHTML = [polaroidHTML(mine, true), ...rest.map(w => polaroidHTML(w))].join("");
+}
 
 /* ── Form submission ── */
 async function handleForm(form, type, successMsg) {
@@ -345,4 +521,204 @@ async function handleForm(form, type, successMsg) {
   });
 }
 handleForm(document.getElementById("rsvpForm"), "rsvp", "Thank you! Your RSVP has been received. 🤍");
-handleForm(document.getElementById("wishForm"), "wish", "Thank you! Your wish has been posted. 🤍");
+
+/* ── The Third Canvas ──
+   Guests each paint ONE signed brushstroke. Strokes are stored as
+   normalized, simplified point lists (≤80 points) so even 1000+
+   strokes stay a small payload and render in a single canvas pass. */
+const tc = document.getElementById("thirdCanvas");
+const tcCtx = tc.getContext("2d");
+const tcTooltip = document.getElementById("tcTooltip");
+const tcCaption = document.getElementById("tcCaption");
+const tcTools = document.getElementById("tcTools");
+const tcDone = document.getElementById("tcDone");
+const tcNote = document.getElementById("tcNote");
+const tcUndo = document.getElementById("tcUndo");
+const tcSign = document.getElementById("tcSign");
+const tcName = document.getElementById("tcName");
+const TC_W = 1500, TC_H = 1000;
+const TC_COLORS = ["#9caf88", "#c1683c", "#e8ddc4", "#6e805f", "#c9a45c", "#4a4238"];
+const TC_SIZES = [6, 14, 26];
+let tcColor = TC_COLORS[0];
+let tcSize = TC_SIZES[1];
+let strokes = [];
+let pending = null;   // the guest's unsigned stroke
+let drawingStroke = null;
+let hoverIndex = -1;
+const signed = JSON.parse(localStorage.getItem("gv_stroke") || "null");
+
+document.getElementById("tcPalette").innerHTML = TC_COLORS
+  .map(c => `<button class="tc-swatch${c === tcColor ? " active" : ""}" type="button" style="background:${c}" data-c="${c}" aria-label="Colour ${c}"></button>`)
+  .join("");
+document.getElementById("tcSizes").innerHTML = TC_SIZES
+  .map(s => `<button class="tc-size${s === tcSize ? " active" : ""}" type="button" data-s="${s}" aria-label="Brush size ${s}"><i style="width:${s * 0.8}px;height:${s * 0.8}px"></i></button>`)
+  .join("");
+document.querySelectorAll(".tc-swatch").forEach(b => b.addEventListener("click", () => {
+  tcColor = b.dataset.c;
+  document.querySelectorAll(".tc-swatch").forEach(x => x.classList.toggle("active", x === b));
+  if (pending) { pending.color = tcColor; drawCanvas(); }
+}));
+document.querySelectorAll(".tc-size").forEach(b => b.addEventListener("click", () => {
+  tcSize = Number(b.dataset.s);
+  document.querySelectorAll(".tc-size").forEach(x => x.classList.toggle("active", x === b));
+  if (pending) { pending.size = tcSize; drawCanvas(); }
+}));
+
+function fitCanvas() {
+  const dpr = Math.min(devicePixelRatio || 1, 2);
+  const w = tc.clientWidth;
+  tc.width = w * dpr;
+  tc.height = (w * TC_H / TC_W) * dpr;
+  drawCanvas();
+}
+addEventListener("resize", fitCanvas);
+
+function drawStroke(s, highlight) {
+  const scale = tc.width / TC_W;
+  const pts = s.points;
+  if (pts.length < 2) return;
+  tcCtx.save();
+  tcCtx.lineCap = tcCtx.lineJoin = "round";
+  tcCtx.strokeStyle = s.color;
+  tcCtx.lineWidth = s.size * scale;
+  if (highlight) { tcCtx.shadowColor = s.color; tcCtx.shadowBlur = 18 * scale; }
+  tcCtx.beginPath();
+  tcCtx.moveTo(pts[0][0] * scale, pts[0][1] * scale);
+  for (let i = 1; i < pts.length - 1; i++) {
+    const mx = (pts[i][0] + pts[i + 1][0]) / 2 * scale;
+    const my = (pts[i][1] + pts[i + 1][1]) / 2 * scale;
+    tcCtx.quadraticCurveTo(pts[i][0] * scale, pts[i][1] * scale, mx, my);
+  }
+  tcCtx.stroke();
+  tcCtx.restore();
+}
+function drawCanvas() {
+  tcCtx.clearRect(0, 0, tc.width, tc.height);
+  strokes.forEach((s, i) => drawStroke(s, i === hoverIndex));
+  if (drawingStroke) drawStroke(drawingStroke);
+  if (pending) drawStroke(pending, true);
+}
+function updateTcCaption() {
+  const n = strokes.length + (pending ? 1 : 0);
+  tcCaption.textContent = n
+    ? `${n} stroke${n === 1 ? "" : "s"} and counting — every one painted by someone we love`
+    : "The canvas is waiting for its first stroke";
+}
+
+/* Painting (disabled once the guest has signed) */
+function canvasPoint(e) {
+  const r = tc.getBoundingClientRect();
+  return [
+    Math.round((e.clientX - r.left) / r.width * TC_W),
+    Math.round((e.clientY - r.top) / r.height * TC_H),
+  ];
+}
+tc.addEventListener("pointerdown", e => {
+  if (signed || pending) return;
+  try { tc.setPointerCapture(e.pointerId); } catch (ignore) {}
+  drawingStroke = { color: tcColor, size: tcSize, points: [canvasPoint(e)] };
+});
+tc.addEventListener("pointermove", e => {
+  if (drawingStroke) {
+    drawingStroke.points.push(canvasPoint(e));
+    drawCanvas();
+    return;
+  }
+  // hover: find a stroke near the pointer
+  if (!strokes.length) return;
+  const [px, py] = canvasPoint(e);
+  let best = -1, bestDist = 40 * 40;
+  strokes.forEach((s, i) => {
+    for (const [x, y] of s.points) {
+      const d = (x - px) ** 2 + (y - py) ** 2;
+      if (d < bestDist) { bestDist = d; best = i; }
+    }
+  });
+  if (best !== hoverIndex) {
+    hoverIndex = best;
+    drawCanvas();
+    if (best >= 0) {
+      const r = tc.getBoundingClientRect();
+      tcTooltip.textContent = `Painted by ${strokes[best].name || "a loved one"}`;
+      tcTooltip.style.left = e.clientX - r.left + 14 + "px";
+      tcTooltip.style.top = e.clientY - r.top + 14 + "px";
+      tcTooltip.hidden = false;
+    } else tcTooltip.hidden = true;
+  } else if (best >= 0) {
+    const r = tc.getBoundingClientRect();
+    tcTooltip.style.left = e.clientX - r.left + 14 + "px";
+    tcTooltip.style.top = e.clientY - r.top + 14 + "px";
+  }
+});
+tc.addEventListener("pointerleave", () => { hoverIndex = -1; tcTooltip.hidden = true; drawCanvas(); });
+tc.addEventListener("pointerup", () => {
+  if (!drawingStroke) return;
+  if (drawingStroke.points.length > 3) {
+    // simplify: cap at 80 evenly-sampled points to keep payloads tiny
+    const pts = drawingStroke.points;
+    const step = Math.max(1, Math.ceil(pts.length / 80));
+    drawingStroke.points = pts.filter((_, i) => i % step === 0 || i === pts.length - 1);
+    pending = drawingStroke;
+    tcUndo.disabled = false;
+    tcSign.disabled = false;
+    tcNote.textContent = "Beautiful. Sign your name to make it permanent.";
+  }
+  drawingStroke = null;
+  drawCanvas();
+  updateTcCaption();
+});
+tcUndo.addEventListener("click", () => {
+  pending = null;
+  tcUndo.disabled = true;
+  tcSign.disabled = true;
+  tcNote.textContent = "Pick a colour, then paint one stroke on the canvas.";
+  drawCanvas();
+  updateTcCaption();
+});
+tcSign.addEventListener("click", async () => {
+  if (!pending) return;
+  const name = tcName.value.trim();
+  if (!name) { tcNote.textContent = "Please sign your name first."; return; }
+  if (!backendReady()) { tcNote.textContent = "The canvas opens soon — please check back shortly!"; return; }
+  tcSign.disabled = true;
+  tcNote.textContent = "Adding your stroke…";
+  try {
+    const stroke = { ...pending, name };
+    await fetch(CONFIG.scriptUrl, {
+      method: "POST", mode: "no-cors",
+      headers: { "Content-Type": "text/plain" },
+      body: JSON.stringify({ type: "stroke", ...stroke, points: JSON.stringify(stroke.points) }),
+    });
+    strokes.push(stroke);
+    localStorage.setItem("gv_stroke", JSON.stringify(stroke));
+    pending = null;
+    tcTools.hidden = true;
+    tcDone.hidden = false;
+    drawCanvas();
+    updateTcCaption();
+  } catch (err) {
+    tcSign.disabled = false;
+    tcNote.textContent = "Something went wrong — please try again.";
+  }
+});
+
+async function loadStrokes() {
+  if (backendReady()) {
+    try {
+      const res = await fetch(CONFIG.scriptUrl + "?type=strokes");
+      const data = await res.json();
+      if (Array.isArray(data)) strokes = data;
+    } catch (err) { /* keep local state */ }
+  }
+  // the guest's own stroke always shows, even before the server catches up
+  if (signed && !strokes.some(s => s.name === signed.name && s.points.length === signed.points.length)) {
+    strokes.push(signed);
+  }
+  drawCanvas();
+  updateTcCaption();
+}
+if (signed) { tcTools.hidden = true; tcDone.hidden = false; }
+fitCanvas();
+new IntersectionObserver((entries, obs) => {
+  if (entries.some(e => e.isIntersecting)) { loadStrokes(); obs.disconnect(); }
+}, { rootMargin: "600px" }).observe(tc);
