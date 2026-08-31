@@ -44,10 +44,17 @@ const CONFIG = {
     "VSP_4537.jpg","VSP_4639.jpg","VSP_4655.jpg","VSP_4661.jpg","VSP_4674.jpg",
     "VSP_4718a.jpg","VSP_5056.jpg","VSP_5147.jpg","VSP_5166.jpg","VSP_5201.jpg",
   ],
-  // Casual shots in the vintage film strip
+  // Casual shots in the vintage film strip (rnd_22 is the two-canvases photo,
+  // featured in The Third Canvas section instead)
   filmstripImages: [
     "IMG_5872.jpg","IMG_5873.jpg","IMG_5874.jpg","IMG_5875.jpg","IMG_5876.jpg",
     "IMG_5877.jpg","IMG_5878.jpg","IMG_5879.jpg","IMG_5880.jpg","IMG_5881.jpg","IMG_5882.jpg",
+    "rnd_01.jpg","rnd_02.jpg","rnd_03.jpg","rnd_04.jpg","rnd_05.jpg","rnd_06.jpg",
+    "rnd_07.jpg","rnd_08.jpg","rnd_09.jpg","rnd_10.jpg","rnd_11.jpg","rnd_12.jpg",
+    "rnd_13.jpg","rnd_14.jpg","rnd_15.jpg","rnd_16.jpg","rnd_17.jpg","rnd_18.jpg",
+    "rnd_19.jpg","rnd_20.jpg","rnd_21.jpg","rnd_23.jpg","rnd_24.jpg","rnd_25.jpg",
+    "rnd_26.jpg","rnd_27.jpg","rnd_28.jpg","rnd_29.jpg","rnd_30.jpg","rnd_31.jpg",
+    "rnd_32.jpg","rnd_33.jpg","rnd_34.jpg","rnd_35.jpg","rnd_36.jpg",
   ],
 };
 
@@ -271,6 +278,7 @@ const frameHTML = CONFIG.filmstripImages
   .map(f => `<button class="film-frame" data-src="${f}" type="button" aria-label="View photo full size"><img src="${IMG_BASE + f}" alt="Gabriella and Victor" loading="lazy"></button>`)
   .join("");
 track.innerHTML = frameHTML + frameHTML; // duplicated for a seamless loop
+track.style.animationDuration = CONFIG.filmstripImages.length * 5 + "s"; // constant speed regardless of count
 track.querySelectorAll(".film-frame").forEach(fr =>
   fr.addEventListener("click", () => showLightbox(allImages.indexOf(fr.dataset.src)))
 );

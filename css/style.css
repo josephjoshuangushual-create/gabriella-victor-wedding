@@ -355,6 +355,17 @@ section { padding: 6rem 1.5rem; max-width: 1200px; margin: 0 auto; }
   max-width: 620px; margin: -0.6rem auto 2.6rem; text-align: center;
   color: var(--ink-dim); font-family: var(--serif); font-style: italic; font-size: 1.12rem;
 }
+.tc-origin {
+  max-width: 460px; margin: 0 auto 2.8rem;
+  background: #efe9dd; padding: 10px 10px 12px;
+  border-radius: 2px; rotate: -1.2deg;
+  box-shadow: 0 8px 26px rgba(0, 0, 0, 0.5);
+}
+.tc-origin img { width: 100%; display: block; }
+.tc-origin figcaption {
+  font-family: "Caveat", cursive; font-size: 1.25rem;
+  color: #4a4238; text-align: center; padding-top: 0.5rem;
+}
 .tc-frame {
   position: relative; max-width: 860px; margin: 0 auto;
   background: #efe9dd; padding: 14px;
