@@ -1,0 +1,109 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex, nofollow">
+<title>Gift & Canvas Admin — Gabriella &amp; Victor</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Caveat:wght@400;600&family=Cormorant+Garamond:wght@300;400;500&family=Jost:wght@300;400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="css/style.css?v=4">
+<link rel="stylesheet" href="css/admin.css?v=4">
+</head>
+<body class="admin">
+
+<!-- ═══════════ KEY GATE ═══════════ -->
+<div class="ad-gate" id="adGate">
+  <form class="ad-gate-card" id="adGateForm">
+    <p class="eyebrow center">Gabriella &amp; Victor</p>
+    <h1>Admin</h1>
+    <label class="field"><span>Admin key</span><input type="password" id="adKey" autocomplete="current-password" required></label>
+    <button class="btn btn-light" type="submit">Unlock</button>
+    <p class="form-note" id="adGateNote"></p>
+  </form>
+</div>
+
+<!-- ═══════════ DASHBOARD ═══════════ -->
+<div class="ad-shell" id="adShell" hidden>
+  <header class="ad-head">
+    <div>
+      <p class="eyebrow">Gabriella &amp; Victor</p>
+      <h1>Gifts &amp; Canvas</h1>
+    </div>
+    <div class="ad-head-right">
+      <button class="btn btn-outline sm" type="button" id="adRefresh">Refresh</button>
+      <button class="btn btn-outline sm" type="button" id="adLock">Lock</button>
+    </div>
+  </header>
+
+  <div class="ad-stats" id="adStats"></div>
+
+  <nav class="ad-tabs" id="adTabs">
+    <button class="ad-tab active" type="button" data-view="board">Board</button>
+    <button class="ad-tab" type="button" data-view="unconfirmed">Unconfirmed <i id="adCountUnconfirmed"></i></button>
+    <button class="ad-tab" type="button" data-view="received">Received</button>
+    <button class="ad-tab" type="button" data-view="links">Link health <i id="adCountLinks"></i></button>
+    <button class="ad-tab" type="button" data-view="canvas">Canvas</button>
+  </nav>
+
+  <main class="ad-body">
+    <section class="ad-view" id="viewBoard"></section>
+    <section class="ad-view" id="viewUnconfirmed" hidden></section>
+    <section class="ad-view" id="viewReceived" hidden></section>
+    <section class="ad-view" id="viewLinks" hidden></section>
+
+    <!-- ── Canvas export ── -->
+    <section class="ad-view" id="viewCanvas" hidden>
+      <div class="ad-canvas-wrap">
+        <div class="ad-canvas-controls">
+          <h3>The Third Canvas</h3>
+          <p class="ad-muted" id="cxStats">Loading strokes…</p>
+
+          <label class="ad-field"><span>Size</span>
+            <select id="cxSize">
+              <option value="2400">Share — 2400px wide (safe on phones)</option>
+              <option value="4000" selected>Print — 4000px wide (15&Prime; at 300dpi)</option>
+              <option value="6000">Large print — 6000px wide (desktop only)</option>
+            </select>
+          </label>
+
+          <label class="ad-check"><input type="checkbox" id="cxSignatures" checked><span>Signatures beside each stroke</span></label>
+          <label class="ad-check"><input type="checkbox" id="cxRoll" checked><span>Roll call of every name</span></label>
+          <label class="ad-check"><input type="checkbox" id="cxPaper" checked><span>Warm paper background</span></label>
+          <label class="ad-check"><input type="checkbox" id="cxHidden"><span>Include hidden (unapproved) strokes</span></label>
+
+          <div class="ad-actions">
+            <button class="btn btn-light sm" type="button" id="cxPng">Download PNG</button>
+            <button class="btn btn-outline sm" type="button" id="cxSvg">Download SVG</button>
+          </div>
+          <p class="form-note" id="cxNote"></p>
+          <p class="ad-muted ad-fine">SVG stays sharp at any print size and keeps names as real text — that is the one to hand a printer. Very large PNGs can fail on iPhones; use a laptop for those.</p>
+        </div>
+
+        <div class="ad-canvas-preview">
+          <canvas id="cxPreview"></canvas>
+        </div>
+      </div>
+    </section>
+  </main>
+</div>
+
+<!-- ═══════════ EMAIL COMPOSER ═══════════ -->
+<div class="ad-overlay" id="adMailModal" hidden>
+  <form class="ad-modal" id="adMailForm">
+    <button class="booth-close" type="button" id="adMailClose" aria-label="Close">&times;</button>
+    <p class="eyebrow" id="adMailKind">Gentle check-in</p>
+    <h3 id="adMailTo">To someone</h3>
+    <label class="field"><span>Subject</span><input type="text" id="adMailSubject" required></label>
+    <label class="field"><span>Message</span><textarea id="adMailBody" rows="9" required></textarea></label>
+    <p class="ad-muted ad-fine">Sends from the wedding account as “Gabriella &amp; Victor”. Edit freely before sending — nothing goes out until you press Send.</p>
+    <button class="btn btn-light" type="submit" id="adMailSend">Send</button>
+    <p class="form-note" id="adMailNote"></p>
+  </form>
+</div>
+
+<script src="js/canvas-export.js?v=4"></script>
+<script src="js/admin.js?v=4"></script>
+</body>
+</html>

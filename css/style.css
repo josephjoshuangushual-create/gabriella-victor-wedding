@@ -245,15 +245,19 @@ section { padding: 6rem 1.5rem; max-width: 1200px; margin: 0 auto; }
 }
 .filmstrip::before { top: 6px; }
 .filmstrip::after { bottom: 6px; }
+/* Native scroll container instead of a transform-animated mega-layer:
+   iOS refuses to rasterize very wide composited layers (the strip went
+   blank on phones once it passed ~90 frames), and native scrolling also
+   lets guests swipe the strip themselves. JS auto-advances scrollLeft. */
+.filmstrip-scroller {
+  overflow-x: auto;
+  scrollbar-width: none;
+  -webkit-overflow-scrolling: touch;
+}
+.filmstrip-scroller::-webkit-scrollbar { display: none; }
 .filmstrip-track {
   display: flex; gap: 1.3rem; width: max-content;
   padding: 0.6rem 0;
-  animation: filmscroll 55s linear infinite;
-}
-.filmstrip:hover .filmstrip-track { animation-play-state: paused; }
-@keyframes filmscroll {
-  from { transform: translateX(-50%); }
-  to { transform: translateX(0); }
 }
 .film-frame {
   flex: 0 0 168px;
@@ -273,7 +277,6 @@ section { padding: 6rem 1.5rem; max-width: 1200px; margin: 0 auto; }
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .filmstrip-track { animation: none; }
   .marquee-track { animation: none; }
 }
 
@@ -512,4 +515,139 @@ section { padding: 6rem 1.5rem; max-width: 1200px; margin: 0 auto; }
   .countdown { gap: 0.9rem; padding: 0.55rem 1.2rem; top: 4.6rem; }
   .countdown span { font-size: 0.95rem; }
   section { padding: 4.5rem 1.2rem; }
+}
+
+/* ── Gift registry ── */
+.registry-head {
+  display: flex; flex-wrap: wrap; gap: 1rem; align-items: center; justify-content: space-between;
+  max-width: 1000px; margin: 0 auto 1.8rem;
+}
+.registry-filters { display: flex; flex-wrap: wrap; gap: 0.5rem; }
+.registry-filter {
+  background: none; border: 1px solid var(--line); color: var(--ink-dim);
+  font-family: var(--sans); font-size: 0.66rem; letter-spacing: 0.18em; text-transform: uppercase;
+  padding: 0.5rem 1rem; border-radius: 999px; cursor: pointer; transition: all 0.25s ease;
+}
+.registry-filter:hover { color: var(--ink); border-color: var(--ink-dim); }
+.registry-filter.active { background: var(--ink); color: var(--bg); border-color: var(--ink); }
+
+.registry-grid {
+  display: grid; grid-template-columns: repeat(auto-fill, minmax(230px, 1fr));
+  gap: 1.6rem; max-width: 1000px; margin: 0 auto;
+}
+.registry-card {
+  background: var(--card); border: 1px solid var(--line); border-radius: 6px;
+  overflow: hidden; text-align: left; padding: 0; cursor: pointer;
+  font-family: var(--sans); color: var(--ink);
+  display: flex; flex-direction: column; transition: border-color 0.25s ease, transform 0.25s ease;
+}
+.registry-card:hover:not(.taken) { border-color: var(--sage); transform: translateY(-3px); }
+.registry-card.selected { border-color: var(--sage); box-shadow: 0 0 0 1px var(--sage); }
+.registry-card.taken { cursor: default; opacity: 0.55; }
+.registry-thumb {
+  aspect-ratio: 4 / 3; background: var(--bg-soft); position: relative;
+  display: flex; align-items: center; justify-content: center; overflow: hidden;
+}
+.registry-thumb img { width: 100%; height: 100%; object-fit: cover; }
+.registry-thumb .ph-mark {
+  font-family: var(--serif); font-size: 2.4rem; color: var(--ink-dim); opacity: 0.4;
+}
+.registry-card.taken .registry-thumb img { filter: grayscale(1); }
+.registry-tick {
+  position: absolute; top: 0.6rem; right: 0.6rem;
+  width: 26px; height: 26px; border-radius: 50%;
+  background: var(--sage); color: #17150f; font-size: 0.95rem;
+  display: none; align-items: center; justify-content: center;
+}
+.registry-card.selected .registry-tick { display: flex; }
+.registry-body { padding: 1rem 1.1rem 1.2rem; display: flex; flex-direction: column; gap: 0.45rem; flex: 1; }
+.registry-cat { font-size: 0.6rem; letter-spacing: 0.24em; text-transform: uppercase; color: var(--ink-dim); }
+.registry-name { font-family: var(--serif); font-size: 1.12rem; line-height: 1.3; font-weight: 500; }
+.registry-price { font-size: 0.88rem; color: var(--ink-dim); }
+.registry-share-note { font-size: 0.72rem; color: var(--sage); }
+.registry-state { font-size: 0.76rem; color: var(--ink-dim); margin-top: auto; padding-top: 0.5rem; }
+.registry-card.taken .registry-state { color: var(--terracotta); }
+.registry-bar { height: 4px; border-radius: 999px; background: var(--line); overflow: hidden; margin-top: 0.5rem; }
+.registry-bar i { display: block; height: 100%; background: var(--sage); border-radius: 999px; }
+.registry-note { text-align: center; margin-top: 1.6rem; }
+.registry-skeleton { text-align: center; color: var(--ink-dim); font-style: italic; padding: 2rem 0; grid-column: 1 / -1; }
+.gifting-cash { margin-top: 4.5rem; }
+.gifting-cash .eyebrow { margin-bottom: 1.6rem; }
+
+/* ── Sticky selection bar ── */
+.gift-bar {
+  position: fixed; left: 50%; bottom: 1.2rem; translate: -50% 0; z-index: 60;
+  display: flex; align-items: center; gap: 1rem;
+  background: var(--card); border: 1px solid var(--sage); border-radius: 999px;
+  padding: 0.6rem 0.7rem 0.6rem 1.4rem;
+  box-shadow: 0 10px 34px rgba(0, 0, 0, 0.55);
+  font-family: var(--sans); max-width: calc(100vw - 2rem);
+}
+.gift-bar[hidden] { display: none; }
+.gift-bar-count { font-size: 0.78rem; letter-spacing: 0.06em; white-space: nowrap; }
+.gift-bar-total { font-size: 0.78rem; color: var(--ink-dim); white-space: nowrap; }
+.gift-bar-clear {
+  background: none; border: none; color: var(--ink-dim); font-size: 1.4rem;
+  cursor: pointer; line-height: 1; padding: 0 0.3rem;
+}
+.gift-bar-clear:hover { color: var(--ink); }
+/* keep the bar from covering the last row of cards */
+body.has-gift-bar .gifting { padding-bottom: 8rem; }
+
+/* ── Gift claim modal ── */
+.gift-panel { max-width: 520px; text-align: left; }
+.gift-panel .eyebrow { text-align: left; }
+.gift-panel-title { font-family: var(--serif); font-size: 1.7rem; font-weight: 500; margin: 0.5rem 0 0.5rem; }
+.gift-panel-lead { color: var(--ink-dim); font-size: 0.9rem; margin-bottom: 1.6rem; }
+.gift-form .field { margin-bottom: 1rem; }
+.gift-form .field em { font-style: normal; color: var(--ink-dim); text-transform: none; letter-spacing: 0; }
+.gift-check {
+  display: flex; align-items: center; gap: 0.6rem; margin: -0.3rem 0 1.2rem;
+  font-size: 0.82rem; color: var(--ink-dim); cursor: pointer;
+}
+.gift-check input { accent-color: var(--sage); width: 16px; height: 16px; }
+.gift-chosen { border-top: 1px solid var(--line); padding-top: 1.1rem; margin-bottom: 1.2rem; }
+.gift-chosen-label { font-size: 0.62rem; letter-spacing: 0.24em; text-transform: uppercase; color: var(--ink-dim); margin-bottom: 0.7rem; }
+.gift-chosen-list { list-style: none; display: flex; flex-direction: column; gap: 0.5rem; }
+.gift-chosen-list li { display: flex; align-items: center; gap: 0.7rem; font-size: 0.88rem; }
+.gift-chosen-list .gc-name { flex: 1; }
+.gift-chosen-list .gc-price { color: var(--ink-dim); font-size: 0.8rem; }
+.gift-chosen-list .gc-drop {
+  background: none; border: none; color: var(--ink-dim); font-size: 1.2rem; cursor: pointer; line-height: 1; padding: 0 0.2rem;
+}
+.gift-chosen-list .gc-drop:hover { color: var(--terracotta); }
+.gift-fineprint { font-size: 0.74rem; color: var(--ink-dim); margin-top: 1rem; line-height: 1.5; }
+.hp { position: absolute; left: -9999px; width: 1px; height: 1px; overflow: hidden; }
+
+/* ── Post-claim checkout panel ── */
+.gift-done { text-align: left; }
+.gift-block { border-top: 1px solid var(--line); padding-top: 1.2rem; margin-top: 1.4rem; }
+.gift-block h4 {
+  font-family: var(--sans); font-weight: 400; font-size: 0.64rem;
+  letter-spacing: 0.24em; text-transform: uppercase; color: var(--ink-dim); margin-bottom: 0.9rem;
+}
+.gift-buylist { list-style: none; display: flex; flex-direction: column; gap: 0.7rem; }
+.gift-buylist a {
+  display: flex; justify-content: space-between; align-items: center; gap: 0.8rem;
+  border: 1px solid var(--line); border-radius: 6px; padding: 0.8rem 1rem;
+  font-size: 0.9rem; transition: border-color 0.2s;
+}
+.gift-buylist a:hover { border-color: var(--sage); }
+.gift-buylist .gb-vendor { font-size: 0.72rem; color: var(--ink-dim); white-space: nowrap; }
+.gift-copybox {
+  background: var(--bg-soft); border: 1px solid var(--line); border-radius: 6px;
+  padding: 1rem 1.1rem; font-size: 0.9rem; line-height: 1.65;
+}
+.gift-copybox .gc-total { color: var(--sage); }
+.gift-copybox .btn { margin-top: 0.9rem; }
+.gift-taken-note { color: var(--terracotta); font-size: 0.85rem; margin-bottom: 1rem; line-height: 1.55; }
+.gift-done .btn { margin-top: 1.6rem; }
+
+@media (max-width: 560px) {
+  .registry-grid { grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 1rem; }
+  .registry-body { padding: 0.8rem 0.85rem 1rem; }
+  .registry-name { font-size: 1rem; }
+  .registry-head { justify-content: center; }
+  .gift-bar { padding-left: 1.1rem; gap: 0.7rem; }
+  .gift-bar-total { display: none; }
 }

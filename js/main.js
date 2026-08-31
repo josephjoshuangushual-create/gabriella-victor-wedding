@@ -278,10 +278,41 @@ const frameHTML = CONFIG.filmstripImages
   .map(f => `<button class="film-frame" data-src="${f}" type="button" aria-label="View photo full size"><img src="${IMG_BASE + f}" alt="Gabriella and Victor" loading="lazy"></button>`)
   .join("");
 track.innerHTML = frameHTML + frameHTML; // duplicated for a seamless loop
-track.style.animationDuration = CONFIG.filmstripImages.length * 5 + "s"; // constant speed regardless of count
 track.querySelectorAll(".film-frame").forEach(fr =>
   fr.addEventListener("click", () => showLightbox(allImages.indexOf(fr.dataset.src)))
 );
+
+/* Auto-advance via native scrolling (transform-animating the ~17k px track
+   makes iOS drop the whole layer — the strip rendered blank on phones).
+   Content flows left → right; touching/hovering pauses so guests can swipe. */
+const stripScroller = document.getElementById("filmstripScroller");
+let stripHold = false, stripHoldTimer = null, stripHover = false;
+let stripPos = -1; // set after first measure
+function stripPause() {
+  stripHold = true;
+  clearTimeout(stripHoldTimer);
+  stripHoldTimer = setTimeout(() => { stripHold = false; }, 2500);
+}
+stripScroller.addEventListener("pointerdown", stripPause);
+stripScroller.addEventListener("touchstart", stripPause, { passive: true });
+stripScroller.addEventListener("wheel", stripPause, { passive: true });
+stripScroller.addEventListener("mouseenter", () => { stripHover = true; });
+stripScroller.addEventListener("mouseleave", () => { stripHover = false; });
+stripScroller.addEventListener("scroll", () => {
+  if (stripHold) stripPos = stripScroller.scrollLeft; // stay in sync with manual swipes
+}, { passive: true });
+function stripFrame() {
+  const half = track.scrollWidth / 2;
+  if (half > 0) {
+    if (stripPos < 0) stripPos = half; // start on the second copy so both directions wrap
+    if (!reducedMotion && !stripHold && !stripHover) stripPos -= 0.55; // drift left→right
+    if (stripPos <= 0) stripPos += half;
+    else if (stripPos >= half * 1.5) stripPos -= half;
+    stripScroller.scrollLeft = stripPos;
+  }
+  requestAnimationFrame(stripFrame);
+}
+requestAnimationFrame(stripFrame);
 
 /* ── Read more ── */
 document.querySelectorAll(".read-more").forEach(btn =>
@@ -588,14 +619,8 @@ function drawStroke(s, highlight) {
   tcCtx.strokeStyle = s.color;
   tcCtx.lineWidth = s.size * scale;
   if (highlight) { tcCtx.shadowColor = s.color; tcCtx.shadowBlur = 18 * scale; }
-  tcCtx.beginPath();
-  tcCtx.moveTo(pts[0][0] * scale, pts[0][1] * scale);
-  for (let i = 1; i < pts.length - 1; i++) {
-    const mx = (pts[i][0] + pts[i + 1][0]) / 2 * scale;
-    const my = (pts[i][1] + pts[i + 1][1]) / 2 * scale;
-    tcCtx.quadraticCurveTo(pts[i][0] * scale, pts[i][1] * scale, mx, my);
-  }
-  tcCtx.stroke();
+  // shared with the admin export so the downloaded keepsake matches exactly
+  CanvasExport.strokePath(tcCtx, pts, scale);
   tcCtx.restore();
 }
 function drawCanvas() {
@@ -728,3 +753,311 @@ fitCanvas();
 new IntersectionObserver((entries, obs) => {
   if (entries.some(e => e.isIntersecting)) { loadStrokes(); obs.disconnect(); }
 }, { rootMargin: "600px" }).observe(tc);
+
+/* ── Gift registry ──
+   Guests may pick several gifts at once. Claiming goes over GET (not the
+   no-cors POST used elsewhere) because we must be able to READ the response:
+   a reservation that cannot tell you whether you won the race is useless. */
+const registryGrid = document.getElementById("registryGrid");
+const registryNote = document.getElementById("registryNote");
+const registryFilters = document.getElementById("registryFilters");
+const giftBar = document.getElementById("giftBar");
+const giftModal = document.getElementById("giftModal");
+const giftForm = document.getElementById("giftForm");
+const giftDone = document.getElementById("giftDone");
+const giftNote = document.getElementById("giftNote");
+
+let registryItems = [];
+let registryBank = null;
+let registryDelivery = null;
+let giftFilter = "all";
+let selectedGifts = [];
+let myGifts = [];
+try {
+  selectedGifts = JSON.parse(localStorage.getItem("gv_gift_sel") || "[]");
+  myGifts = JSON.parse(localStorage.getItem("gv_gift_mine") || "[]");
+} catch (err) { /* ignore malformed storage */ }
+
+const MAX_GIFT_BATCH = 5;
+const naira = n => (n ? "₦" + Number(n).toLocaleString("en-NG") : "");
+const giftById = id => registryItems.find(i => i.id === id);
+
+function saveSelection() {
+  try { localStorage.setItem("gv_gift_sel", JSON.stringify(selectedGifts)); } catch (err) {}
+}
+
+function renderRegistry() {
+  if (!registryItems.length) {
+    registryGrid.innerHTML = backendReady()
+      ? `<p class="registry-skeleton">The registry opens shortly — please check back.</p>`
+      : `<p class="registry-skeleton">The registry opens soon — please check back shortly.</p>`;
+    registryFilters.innerHTML = "";
+    return;
+  }
+
+  const cats = [...new Set(registryItems.map(i => i.category).filter(Boolean))];
+  registryFilters.innerHTML = ["all", ...cats]
+    .map(c => `<button class="registry-filter${c === giftFilter ? " active" : ""}" type="button" data-cat="${esc(c)}">${c === "all" ? "Everything" : esc(c)}</button>`)
+    .join("");
+
+  const shown = registryItems.filter(i => giftFilter === "all" || i.category === giftFilter);
+  registryGrid.innerHTML = shown.map(item => {
+    const gone = item.available <= 0;
+    const isSel = selectedGifts.includes(item.id);
+    const mine = myGifts.includes(item.id);
+    const group = item.shares > 1;
+
+    let state;
+    if (mine) state = "Yours 💛 — thank you";
+    else if (gone) state = item.givers.length ? `Already spoken for 💛 — by ${esc(item.givers[0])}` : "Already spoken for 💛";
+    else if (group) state = `${item.taken} of ${item.shares} shares taken`;
+    else state = "Available";
+
+    const thumb = item.image
+      ? `<img src="${esc(item.image)}" alt="${esc(item.name)}" loading="lazy">`
+      : `<span class="ph-mark">${esc((item.name || "?").trim().charAt(0))}</span>`;
+
+    const price = group && item.sharePrice
+      ? `<p class="registry-price">${naira(item.price)} total</p><p class="registry-share-note">Join from ${naira(item.sharePrice)}</p>`
+      : item.price ? `<p class="registry-price">${naira(item.price)}</p>`
+      : `<p class="registry-price">Price shown at ${esc(item.vendor || "checkout")}</p>`;
+
+    const bar = group
+      ? `<div class="registry-bar"><i style="width:${Math.round(item.taken / item.shares * 100)}%"></i></div>`
+      : "";
+
+    return `<button class="registry-card${gone ? " taken" : ""}${isSel ? " selected" : ""}" type="button"
+              data-id="${esc(item.id)}" ${gone ? "disabled" : ""}
+              aria-pressed="${isSel ? "true" : "false"}">
+        <span class="registry-thumb">${thumb}<span class="registry-tick">✓</span></span>
+        <span class="registry-body">
+          ${item.category ? `<span class="registry-cat">${esc(item.category)}</span>` : ""}
+          <span class="registry-name">${esc(item.name)}</span>
+          ${price}${bar}
+          <span class="registry-state">${state}</span>
+        </span>
+      </button>`;
+  }).join("");
+
+  registryGrid.querySelectorAll(".registry-card:not(.taken)").forEach(card =>
+    card.addEventListener("click", () => toggleGift(card.dataset.id)));
+  registryFilters.querySelectorAll(".registry-filter").forEach(b =>
+    b.addEventListener("click", () => { giftFilter = b.dataset.cat; renderRegistry(); }));
+
+  updateGiftBar();
+}
+
+function toggleGift(id) {
+  const i = selectedGifts.indexOf(id);
+  if (i >= 0) selectedGifts.splice(i, 1);
+  else {
+    if (selectedGifts.length >= MAX_GIFT_BATCH) {
+      registryNote.textContent = `You can choose up to ${MAX_GIFT_BATCH} at a time — more than enough generosity!`;
+      registryNote.className = "registry-note form-note";
+      return;
+    }
+    selectedGifts.push(id);
+  }
+  registryNote.textContent = "";
+  saveSelection();
+  renderRegistry();
+}
+
+function updateGiftBar() {
+  // drop anything that got claimed by someone else while we were deciding
+  selectedGifts = selectedGifts.filter(id => { const it = giftById(id); return it && it.available > 0; });
+  saveSelection();
+
+  const n = selectedGifts.length;
+  giftBar.hidden = n === 0;
+  document.body.classList.toggle("has-gift-bar", n > 0);
+  if (!n) return;
+
+  const total = selectedGifts.reduce((sum, id) => {
+    const it = giftById(id);
+    return sum + (it ? (it.shares > 1 ? it.sharePrice : it.price) : 0);
+  }, 0);
+  document.getElementById("giftBarCount").textContent = `${n} gift${n === 1 ? "" : "s"} selected`;
+  document.getElementById("giftBarTotal").textContent = total ? naira(total) : "";
+}
+
+function renderChosenList() {
+  document.getElementById("giftChosenList").innerHTML = selectedGifts.map(id => {
+    const it = giftById(id);
+    if (!it) return "";
+    const amount = it.shares > 1 ? it.sharePrice : it.price;
+    return `<li>
+        <span class="gc-name">${esc(it.name)}${it.shares > 1 ? " <em>(one share)</em>" : ""}</span>
+        <span class="gc-price">${amount ? naira(amount) : ""}</span>
+        <button class="gc-drop" type="button" data-drop="${esc(id)}" aria-label="Remove ${esc(it.name)}">&times;</button>
+      </li>`;
+  }).join("");
+  document.getElementById("giftChosenList").querySelectorAll(".gc-drop").forEach(b =>
+    b.addEventListener("click", () => {
+      toggleGift(b.dataset.drop);
+      if (!selectedGifts.length) closeGiftModal();
+      else renderChosenList();
+    }));
+}
+
+function openGiftModal() {
+  if (!selectedGifts.length) return;
+  giftForm.hidden = false;
+  giftDone.hidden = true;
+  giftNote.textContent = "";
+  giftNote.className = "form-note";
+  renderChosenList();
+  giftModal.hidden = false;
+  document.body.classList.add("no-scroll");
+}
+function closeGiftModal() {
+  giftModal.hidden = true;
+  document.body.classList.remove("no-scroll");
+}
+
+document.getElementById("giftBarGo").addEventListener("click", openGiftModal);
+document.getElementById("giftClose").addEventListener("click", closeGiftModal);
+document.getElementById("giftDoneClose").addEventListener("click", closeGiftModal);
+document.getElementById("giftBarClear").addEventListener("click", () => {
+  selectedGifts = [];
+  saveSelection();
+  renderRegistry();
+});
+giftModal.addEventListener("click", e => { if (e.target === giftModal) closeGiftModal(); });
+addEventListener("keydown", e => { if (e.key === "Escape" && !giftModal.hidden) closeGiftModal(); });
+document.getElementById("blessingOnlyBtn").addEventListener("click", () => {
+  document.getElementById("wishes").scrollIntoView({ behavior: reducedMotion ? "auto" : "smooth" });
+});
+
+async function copyText(text, btn) {
+  try {
+    await navigator.clipboard.writeText(text);
+    const was = btn.textContent;
+    btn.textContent = "Copied ✓";
+    setTimeout(() => { btn.textContent = was; }, 1800);
+  } catch (err) {
+    btn.textContent = "Press and hold to copy";
+  }
+}
+
+function renderGiftDone(claimed, taken) {
+  const whole = claimed.filter(c => c.shares <= 1);
+  const shares = claimed.filter(c => c.shares > 1);
+  const shareTotal = shares.reduce((s, c) => s + (c.sharePrice || 0), 0);
+  let html = "";
+
+  if (taken && taken.length) {
+    const names = taken.map(t => t.name || "one of your picks").join(", ");
+    html += `<p class="gift-taken-note">${claimed.length ? "Almost all yours — " : ""}${esc(names)}
+      ${taken.length === 1 ? "was claimed" : "were claimed"} moments before you.
+      ${claimed.length ? "Everything else is set aside for you." : "Have a look at what is still open."}</p>`;
+  }
+
+  if (whole.length) {
+    html += `<div class="gift-block"><h4>To buy directly</h4><ul class="gift-buylist">`
+      + whole.map(c => `<li><a href="${esc(c.url)}" target="_blank" rel="noopener">
+          <span>${esc(c.name)}</span>
+          <span class="gb-vendor">${esc(c.vendor)}${c.price ? " · " + naira(c.price) : ""} ↗</span></a></li>`).join("")
+      + `</ul></div>`;
+
+    if (registryDelivery && registryDelivery.address) {
+      const addr = [registryDelivery.name, registryDelivery.address, registryDelivery.phone].filter(Boolean).join("\n");
+      html += `<div class="gift-block"><h4>The easy option</h4><div class="gift-copybox">
+          Most guests have it delivered straight to us — paste this at checkout.<br><br>
+          ${esc(addr).replace(/\n/g, "<br>")}
+          <br><button class="btn btn-outline sm" type="button" data-copy="${esc(addr)}">Copy address</button>
+          <p class="gift-fineprint">Or bring it on the day — whichever suits you.</p>
+        </div></div>`;
+    }
+  }
+
+  if (shares.length) {
+    const bank = registryBank || {};
+    const lines = [bank.bankName, bank.accountNumber, bank.accountName].filter(Boolean).join("\n");
+    html += `<div class="gift-block"><h4>To send your share${shares.length > 1 ? "s" : ""}</h4><div class="gift-copybox">`
+      + shares.map(c => `${esc(c.name)} — ${naira(c.sharePrice)}<br>`).join("")
+      + (shares.length > 1 ? `<br><span class="gc-total">One transfer of ${naira(shareTotal)} covers all of them.</span><br>` : "")
+      + `<br>${esc(lines).replace(/\n/g, "<br>")}`
+      + (bank.accountNumber ? `<br><button class="btn btn-outline sm" type="button" data-copy="${esc(bank.accountNumber)}">Copy account number</button>` : "")
+      + `<p class="gift-fineprint">We will buy it once the shares are complete.</p></div></div>`;
+  }
+
+  if (claimed.length) {
+    html += `<p class="gift-fineprint">We have emailed you this list with a one-tap link to let us know once it is done.
+      There is no deadline and no pressure at all — and if you change your mind, just reply to that email.</p>`;
+  }
+
+  document.getElementById("giftDoneTitle").textContent = claimed.length ? "Thank you — truly 💛" : "Those ones just went";
+  document.getElementById("giftDoneBody").innerHTML = html;
+  document.getElementById("giftDoneBody").querySelectorAll("[data-copy]").forEach(b =>
+    b.addEventListener("click", () => copyText(b.dataset.copy, b)));
+  giftForm.hidden = true;
+  giftDone.hidden = false;
+}
+
+giftForm.addEventListener("submit", async e => {
+  e.preventDefault();
+  const btn = document.getElementById("giftSubmit");
+  const data = Object.fromEntries(new FormData(giftForm));
+  if (!selectedGifts.length) return;
+  if (!backendReady()) {
+    giftNote.textContent = "The registry opens soon — please check back shortly!";
+    giftNote.className = "form-note error";
+    return;
+  }
+  btn.disabled = true;
+  giftNote.textContent = "Setting them aside…";
+  giftNote.className = "form-note";
+
+  try {
+    const url = new URL(CONFIG.scriptUrl);
+    url.searchParams.set("action", "claim");
+    url.searchParams.set("items", selectedGifts.join(","));
+    url.searchParams.set("name", data.name || "");
+    url.searchParams.set("email", data.email || "");
+    url.searchParams.set("phone", data.phone || "");
+    url.searchParams.set("message", (data.message || "").slice(0, 400));
+    url.searchParams.set("showName", data.showName ? "yes" : "no");
+    url.searchParams.set("wall", data.wall ? "yes" : "no");
+    url.searchParams.set("hp", data.hp || "");
+
+    const res = await fetch(url);
+    const out = await res.json();
+    if (!out.ok) {
+      giftNote.textContent = out.message || "Something went wrong — please try again.";
+      giftNote.className = "form-note error";
+      btn.disabled = false;
+      return;
+    }
+
+    myGifts = myGifts.concat((out.claimed || []).map(c => c.id));
+    try { localStorage.setItem("gv_gift_mine", JSON.stringify(myGifts)); } catch (err) {}
+    selectedGifts = [];
+    saveSelection();
+    renderGiftDone(out.claimed || [], out.taken || []);
+    loadRegistry();
+  } catch (err) {
+    giftNote.textContent = "Something went wrong — please try again.";
+    giftNote.className = "form-note error";
+    btn.disabled = false;
+  }
+});
+
+async function loadRegistry() {
+  if (backendReady()) {
+    try {
+      const res = await fetch(CONFIG.scriptUrl + "?action=registry");
+      const data = await res.json();
+      if (data && Array.isArray(data.items)) {
+        registryItems = data.items;
+        registryBank = data.bank;
+        registryDelivery = data.delivery;
+      }
+    } catch (err) { /* fall through to the placeholder */ }
+  }
+  renderRegistry();
+}
+renderRegistry();
+new IntersectionObserver((entries, obs) => {
+  if (entries.some(e => e.isIntersecting)) { loadRegistry(); obs.disconnect(); }
+}, { rootMargin: "600px" }).observe(registryGrid);

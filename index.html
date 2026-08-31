@@ -11,7 +11,8 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;1,400;1,500&family=Jost:wght@300;400;500&family=Caveat:wght@400;600&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="css/style.css">
+<!-- bump ?v= on both asset links whenever css/js change, so phones never serve stale copies -->
+<link rel="stylesheet" href="css/style.css?v=4">
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='0.9em' font-size='90'>🤍</text></svg>">
 </head>
 <body class="no-scroll">
@@ -130,7 +131,9 @@
   </div>
   <p class="eyebrow center" style="margin-top:5rem">Randomsssss</p>
   <div class="filmstrip" id="filmstrip">
-    <div class="filmstrip-track" id="filmstripTrack"><!-- populated by JS --></div>
+    <div class="filmstrip-scroller" id="filmstripScroller">
+      <div class="filmstrip-track" id="filmstripTrack"><!-- populated by JS --></div>
+    </div>
   </div>
 </section>
 
@@ -271,9 +274,82 @@
 <section class="gifting" id="gifting">
   <p class="eyebrow center">Gift Us</p>
   <h2 class="section-title">With Love &amp; Gratitude</h2>
-  <p class="gifting-lead">Your presence is our greatest gift. However, if you would like to support our next chapter, we kindly prefer cash gifts, which are deeply appreciated.</p>
-  <div class="gifting-grid" id="giftingGrid"><!-- populated by JS --></div>
+  <p class="gifting-lead">Your presence is our greatest gift &mdash; truly, nothing else is expected. If you would like to mark the day with something for our first home, we have gathered a few things below. Pick one, share one with others, or simply leave us a prayer.</p>
+
+  <div class="registry-head">
+    <div class="registry-filters" id="registryFilters"><!-- populated by JS --></div>
+    <button class="btn btn-outline sm" type="button" id="blessingOnlyBtn">I&rsquo;d rather just send a blessing</button>
+  </div>
+
+  <div class="registry-grid" id="registryGrid"><!-- populated by JS --></div>
+  <p class="registry-note" id="registryNote" data-form-note></p>
+
+  <div class="gifting-cash">
+    <p class="eyebrow center">Or simply</p>
+    <div class="gifting-grid" id="giftingGrid"><!-- populated by JS --></div>
+  </div>
 </section>
+
+<!-- ═══════════ GIFT SELECTION BAR ═══════════ -->
+<div class="gift-bar" id="giftBar" hidden>
+  <span class="gift-bar-count" id="giftBarCount">0 gifts selected</span>
+  <span class="gift-bar-total" id="giftBarTotal"></span>
+  <button class="btn btn-light sm" type="button" id="giftBarGo">Continue</button>
+  <button class="gift-bar-clear" type="button" id="giftBarClear" aria-label="Clear selection">&times;</button>
+</div>
+
+<!-- ═══════════ GIFT CLAIM MODAL ═══════════ -->
+<div class="booth-overlay gift-overlay" id="giftModal" hidden>
+  <div class="booth-card gift-panel">
+    <button class="booth-close" type="button" id="giftClose" aria-label="Close">&times;</button>
+
+    <!-- Step 1: the form -->
+    <form class="gift-form" id="giftForm">
+      <p class="eyebrow">A gift from you</p>
+      <h3 class="gift-panel-title">Leave them a blessing</h3>
+      <p class="gift-panel-lead">This is the part they will keep. The gift is just the wrapping.</p>
+
+      <label class="field">
+        <span>Your prayer or wish for us</span>
+        <textarea name="message" rows="3" maxlength="400" placeholder="May your home always be full&hellip;"></textarea>
+      </label>
+      <label class="gift-check">
+        <input type="checkbox" name="wall" value="yes" checked>
+        <span>Show my blessing on the Wish Wall</span>
+      </label>
+
+      <div class="field-row">
+        <label class="field"><span>Your name</span><input type="text" name="name" required autocomplete="name"></label>
+        <label class="field"><span>Email</span><input type="email" name="email" required autocomplete="email"></label>
+      </div>
+      <label class="field"><span>Phone <em>(optional)</em></span><input type="tel" name="phone" autocomplete="tel"></label>
+      <label class="gift-check">
+        <input type="checkbox" name="showName" value="yes" checked>
+        <span>Show my name on the registry</span>
+      </label>
+
+      <div class="gift-chosen">
+        <p class="gift-chosen-label">You are gifting</p>
+        <ul class="gift-chosen-list" id="giftChosenList"></ul>
+      </div>
+
+      <!-- honeypot: real guests never see or fill this -->
+      <div class="hp" aria-hidden="true"><label>Leave this empty<input type="text" name="hp" tabindex="-1" autocomplete="off"></label></div>
+
+      <button class="btn btn-light" type="submit" id="giftSubmit">Set these aside for us</button>
+      <p class="form-note" data-form-note id="giftNote"></p>
+      <p class="gift-fineprint">No payment happens here. We only note who is bringing what, so nothing arrives twice.</p>
+    </form>
+
+    <!-- Step 2: what to do next -->
+    <div class="gift-done" id="giftDone" hidden>
+      <p class="eyebrow">Set aside for you</p>
+      <h3 class="gift-panel-title" id="giftDoneTitle">Thank you &mdash; truly 💛</h3>
+      <div id="giftDoneBody"></div>
+      <button class="btn btn-outline sm" type="button" id="giftDoneClose">Close</button>
+    </div>
+  </div>
+</div>
 
 <!-- ═══════════ Q&A ═══════════ -->
 <section class="faq" id="faq">
@@ -310,6 +386,7 @@
   <button class="lightbox-next" id="lightboxNext" aria-label="Next">&#8250;</button>
 </div>
 
-<script src="js/main.js"></script>
+<script src="js/canvas-export.js?v=4"></script>
+<script src="js/main.js?v=4"></script>
 </body>
 </html>
