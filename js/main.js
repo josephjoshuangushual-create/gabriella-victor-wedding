@@ -974,10 +974,13 @@ function renderGiftDone(claimed, taken) {
     const bank = registryBank || {};
     const lines = [bank.bankName, bank.accountNumber, bank.accountName].filter(Boolean).join("\n");
     html += `<div class="gift-block"><h4>To send your share${shares.length > 1 ? "s" : ""}</h4><div class="gift-copybox">`
-      + shares.map(c => `${esc(c.name)} — ${naira(c.sharePrice)}<br>`).join("")
-      + (shares.length > 1 ? `<br><span class="gc-total">One transfer of ${naira(shareTotal)} covers all of them.</span><br>` : "")
-      + `<br>${esc(lines).replace(/\n/g, "<br>")}`
-      + (bank.accountNumber ? `<br><button class="btn btn-outline sm" type="button" data-copy="${esc(bank.accountNumber)}">Copy account number</button>` : "")
+      + shares.map(c => `${esc(c.name)}${c.sharePrice ? " — " + naira(c.sharePrice) : ""}<br>`).join("")
+      + (shares.length > 1 && shareTotal ? `<br><span class="gc-total">One transfer of ${naira(shareTotal)} covers all of them.</span><br>` : "")
+      // never show an empty details box — say what happens next instead
+      + (lines
+          ? `<br>${esc(lines).replace(/\n/g, "<br>")}`
+            + (bank.accountNumber ? `<br><button class="btn btn-outline sm" type="button" data-copy="${esc(bank.accountNumber)}">Copy account number</button>` : "")
+          : `<br>We will email you the transfer details shortly — nothing to do right now.`)
       + `<p class="gift-fineprint">We will buy it once the shares are complete.</p></div></div>`;
   }
 
