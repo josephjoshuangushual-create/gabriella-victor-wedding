@@ -3,9 +3,9 @@
    placeholder values below when details are confirmed.  */
 
 const CONFIG = {
-  // PLACEHOLDER date — update when the couple confirms (ISO format, WAT = +01:00)
-  weddingDate: "2026-12-12T10:00:00+01:00",
-  weddingDateLabel: "Date to be announced · Lagos, Nigeria",
+  // Wedding date (WAT = +01:00); time of day still TBC
+  weddingDate: "2026-10-24T10:00:00+01:00",
+  weddingDateLabel: "Saturday, 24th October 2026 · Warri, Nigeria",
   hashtag: "#OfGraceAndLove",
 
   // Google Apps Script Web App URL — paste the real URL after deploying
@@ -15,18 +15,16 @@ const CONFIG = {
   plannerEmail: "hello@example.com", // PLACEHOLDER
 
   schedule: {
-    churchDate: "To be announced",
-    churchVenue: "To be announced",
+    churchDate: "Saturday, 24th October 2026 · Time TBA",
+    churchVenue: "NNPC Housing Complex, Warri, Delta State",
     churchDress: "To be announced",
-    receptionDate: "To be announced",
-    receptionVenue: "To be announced",
-    receptionNote: "Details coming soon — check back after you RSVP.",
   },
 
-  // Colors of the day (PLACEHOLDER — drawn from the pre-wedding shoot palette)
+  // Colors of the day (drawn from the pre-wedding shoot palette; dress themes TBC)
   colors: [
     { name: "Sage Green", hex: "#9caf88" },
     { name: "Terracotta", hex: "#c1683c" },
+    { name: "Brown", hex: "#6b4a33" },
   ],
 
   // Gift accounts (PLACEHOLDER — replace with real details)
@@ -537,7 +535,7 @@ const tcUndo = document.getElementById("tcUndo");
 const tcSign = document.getElementById("tcSign");
 const tcName = document.getElementById("tcName");
 const TC_W = 1500, TC_H = 1000;
-const TC_COLORS = ["#9caf88", "#c1683c", "#e8ddc4", "#6e805f", "#c9a45c", "#4a4238"];
+const TC_COLORS = ["#9caf88", "#c1683c", "#8b5e3c", "#e8ddc4", "#6e805f", "#c9a45c", "#4a4238"];
 const TC_SIZES = [6, 14, 26];
 let tcColor = TC_COLORS[0];
 let tcSize = TC_SIZES[1];
