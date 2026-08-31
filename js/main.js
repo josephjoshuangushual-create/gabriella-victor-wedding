@@ -11,7 +11,12 @@ const CONFIG = {
   // Backend URL — set it once in js/config.js (shared with the admin page).
   scriptUrl: GV_SCRIPT_URL,
 
-  plannerEmail: "hello@example.com", // PLACEHOLDER
+  // Enquiry contacts shown in the footer. `tel` uses +234 so the number still
+  // dials correctly for any guest calling from outside Nigeria.
+  contacts: [
+    { name: "Adewumi", phone: "08139500264", tel: "+2348139500264" },
+    { name: "Kingsley", phone: "08138453545", tel: "+2348138453545" },
+  ],
 
   schedule: {
     churchDate: "Saturday, 24th October 2026 · Time TBA",
@@ -77,8 +82,9 @@ addEventListener("scroll", () => nav.classList.toggle("scrolled", scrollY > 40),
 /* ── Hero text + countdown ── */
 document.getElementById("heroTag").textContent = CONFIG.hashtag;
 document.getElementById("heroDate").textContent = CONFIG.weddingDateLabel;
-document.getElementById("plannerEmail").textContent = CONFIG.plannerEmail;
-document.getElementById("plannerEmail").href = "mailto:" + CONFIG.plannerEmail;
+document.getElementById("footerContacts").innerHTML = CONFIG.contacts
+  .map(c => `${esc(c.name)} <a href="tel:${esc(c.tel)}">${esc(c.phone)}</a>`)
+  .join("&ensp;·&ensp;");
 
 const target = new Date(CONFIG.weddingDate).getTime();
 const cd = ["cdD", "cdH", "cdM", "cdS"].map(id => document.getElementById(id));

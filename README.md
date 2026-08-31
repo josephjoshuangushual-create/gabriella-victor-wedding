@@ -14,7 +14,7 @@ Everything that will change lives in `CONFIG` at the top of [js/main.js](js/main
 | Date line under names | `weddingDateLabel` |
 | Hashtag | `hashtag` |
 | Backend URL | set once in [js/config.js](js/config.js) — shared by the site and the admin page |
-| Planner email | `plannerEmail` |
+| Enquiry contacts (footer) | `contacts` |
 | Church / reception details | `schedule.*` |
 | Colours of the day | `colors` |
 | Bank accounts for cash gifts | `gifts` |
@@ -22,7 +22,7 @@ Everything that will change lives in `CONFIG` at the top of [js/main.js](js/main
 
 The Q&A answers and story copy are in `index.html` directly.
 
-**Current placeholders to replace when the couple confirms:** wedding date, venues, dress themes, colours, planner email, hashtag (currently `#OfGraceAndLove`).
+**Current placeholders to replace when the couple confirms:** wedding date, venues, dress themes, colours, hashtag (currently `#OfGraceAndLove`).
 
 ## Enabling the backend (one time)
 
