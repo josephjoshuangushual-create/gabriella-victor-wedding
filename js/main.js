@@ -8,9 +8,8 @@ const CONFIG = {
   weddingDateLabel: "Saturday, 24th October 2026 · Warri, Nigeria",
   hashtag: "#OfGraceAndLove",
 
-  // Google Apps Script Web App URL — paste the real URL after deploying
-  // apps-script/Code.gs (see README). Leave as-is until then.
-  scriptUrl: "PASTE_APPS_SCRIPT_URL_HERE",
+  // Backend URL — set it once in js/config.js (shared with the admin page).
+  scriptUrl: GV_SCRIPT_URL,
 
   plannerEmail: "hello@example.com", // PLACEHOLDER
 

@@ -68,6 +68,23 @@ const CanvasExport = (function () {
     return lines;
   }
 
+  /**
+   * Fit the roll call inside a bounded block by stepping the type down until
+   * it fits. Without this, a long guest list turns the keepsake into a tall
+   * strip of names and blows past the browser's canvas area limit.
+   */
+  function fitRollCall(ctx, names, maxW, maxH, startFont) {
+    let font = startFont;
+    const min = Math.max(7, Math.round(startFont * 0.2));
+    for (;;) {
+      ctx.font = font + "px Caveat, cursive";
+      const lines = wrapNames(ctx, names, maxW);
+      const lh = Math.round(font * 1.35);
+      if (lines.length * lh <= maxH || font <= min) return { lines, font, lineHeight: lh };
+      font = Math.max(min, Math.round(font * 0.9));
+    }
+  }
+
   function overlaps(a, boxes) {
     for (const b of boxes) {
       if (a.x < b.x + b.w && a.x + a.w > b.x && a.y < b.y + b.h && a.y + a.h > b.y) return true;
@@ -143,9 +160,12 @@ const CanvasExport = (function () {
     const sigFont = Math.round(width * 0.013);
 
     // measure the roll call first so the canvas can be sized to fit it
-    ctx.font = rollFont + "px Caveat, cursive";
-    const rollLines = o.rollCall !== false && names.length ? wrapNames(ctx, names, L.artW) : [];
-    const rollBlock = rollLines.length ? Math.round(width * 0.045) + rollLines.length * Math.round(rollFont * 1.35) : 0;
+    const maxRollH = Math.round(L.artH * 0.34); // keep the artwork the hero
+    const roll = o.rollCall !== false && names.length
+      ? fitRollCall(ctx, names, L.artW, maxRollH, rollFont)
+      : { lines: [], font: rollFont, lineHeight: 0 };
+    const rollLines = roll.lines;
+    const rollBlock = rollLines.length ? Math.round(width * 0.045) + rollLines.length * roll.lineHeight : 0;
     const height = L.artY + L.artH + rollBlock + L.margin;
 
     canvas.width = width;
@@ -199,8 +219,8 @@ const CanvasExport = (function () {
       const label = "PAINTED BY " + names.length + (names.length === 1 ? " HAND" : " HANDS");
       ctx.fillText(spaced(label), width / 2, L.artY + L.artH + Math.round(width * 0.032));
       ctx.fillStyle = INK;
-      ctx.font = rollFont + "px Caveat, cursive";
-      const lh = Math.round(rollFont * 1.35);
+      ctx.font = roll.font + "px Caveat, cursive";
+      const lh = roll.lineHeight;
       rollLines.forEach((line, i) => {
         ctx.fillText(line, width / 2, L.artY + L.artH + Math.round(width * 0.058) + i * lh);
       });
@@ -234,9 +254,12 @@ const CanvasExport = (function () {
     const ctx = c.getContext("2d");
     const rollFont = Math.round(width * 0.018);
     const sigFont = Math.round(width * 0.013);
-    ctx.font = rollFont + "px Caveat, cursive";
-    const rollLines = o.rollCall !== false && names.length ? wrapNames(ctx, names, L.artW) : [];
-    const rollBlock = rollLines.length ? Math.round(width * 0.045) + rollLines.length * Math.round(rollFont * 1.35) : 0;
+    const maxRollH = Math.round(L.artH * 0.34);
+    const roll = o.rollCall !== false && names.length
+      ? fitRollCall(ctx, names, L.artW, maxRollH, rollFont)
+      : { lines: [], font: rollFont, lineHeight: 0 };
+    const rollLines = roll.lines;
+    const rollBlock = rollLines.length ? Math.round(width * 0.045) + rollLines.length * roll.lineHeight : 0;
     const height = L.artY + L.artH + rollBlock + L.margin;
     const onPaper = o.paper !== false;
 
@@ -274,9 +297,9 @@ const CanvasExport = (function () {
     if (rollLines.length && onPaper) {
       const label = "PAINTED BY " + names.length + (names.length === 1 ? " HAND" : " HANDS");
       svg += '<text class="lbl" x="' + width / 2 + '" y="' + Math.round(L.artY + L.artH + width * 0.032) + '" text-anchor="middle" font-size="' + Math.round(width * 0.0115) + '" fill="' + INK_DIM + '">' + esc(label) + '</text>\n';
-      const lh = Math.round(rollFont * 1.35);
+      const lh = roll.lineHeight;
       rollLines.forEach((line, i) => {
-        svg += '<text class="roll" x="' + width / 2 + '" y="' + Math.round(L.artY + L.artH + width * 0.058 + i * lh) + '" text-anchor="middle" font-size="' + rollFont + '" fill="' + INK + '">' + esc(line) + '</text>\n';
+        svg += '<text class="roll" x="' + width / 2 + '" y="' + Math.round(L.artY + L.artH + width * 0.058 + i * lh) + '" text-anchor="middle" font-size="' + roll.font + '" fill="' + INK + '">' + esc(line) + '</text>\n';
       });
     }
 

@@ -62,11 +62,13 @@
 
           <label class="ad-field"><span>Size</span>
             <select id="cxSize">
-              <option value="2400">Share — 2400px wide (safe on phones)</option>
-              <option value="4000" selected>Print — 4000px wide (15&Prime; at 300dpi)</option>
-              <option value="6000">Large print — 6000px wide (desktop only)</option>
+              <option value="2400">Share — artwork prints 7&Prime; wide (safe on phones)</option>
+              <option value="4000" selected>Print — artwork prints 11.7&Prime; wide</option>
+              <option value="6000">Large print — artwork prints 17.6&Prime; wide (desktop only)</option>
             </select>
           </label>
+
+          <p class="ad-muted ad-out" id="cxOut"></p>
 
           <label class="ad-check"><input type="checkbox" id="cxSignatures" checked><span>Signatures beside each stroke</span></label>
           <label class="ad-check"><input type="checkbox" id="cxRoll" checked><span>Roll call of every name</span></label>
@@ -103,6 +105,7 @@
   </form>
 </div>
 
+<script src="js/config.js?v=4"></script>
 <script src="js/canvas-export.js?v=4"></script>
 <script src="js/admin.js?v=4"></script>
 </body>
