@@ -8,8 +8,14 @@
  * personal one. Whoever owns this script is who guests receive email from;
  * MailApp cannot spoof a different From address.
  *
- * 1. Create a Google Sheet under the wedding account (e.g. "GV Wedding").
- * 2. Extensions → Apps Script, delete the default code, paste this file.
+ * This is a STANDALONE script (not container-bound) that reaches the Sheet by
+ * ID. Google's "Extensions → Apps Script" opener fails with "the file cannot
+ * be opened" whenever more than one Google account is signed in; binding by
+ * ID is immune to that, and works no matter which account is the default.
+ *
+ * 1. Create a Google Sheet under the wedding account (e.g. "GV Wedding") and
+ *    copy its ID from the URL into SHEET_ID below.
+ * 2. script.google.com → New project → paste this file.
  * 3. Fill in the COUPLE block below.
  * 4. Project Settings → Script Properties → add ADMIN_KEY = <a long password>.
  * 5. Run seedRegistry() once from the editor to create the 8 gift rows,
@@ -28,9 +34,16 @@
  * writes are serialized with LockService.
  * ───────────────────────────────────────────────────────────────────────── */
 
+// The Sheet this script reads and writes. Take it from the Sheet's URL:
+// docs.google.com/spreadsheets/d/<THIS PART>/edit
+var SHEET_ID = "1B4YHXdEdGFwsZNHUzjVKnIBRz6DL7ymDh7EgZY5wZXU";
+
 var COUPLE = {
   names: "Gabriella & Victor",
-  replyTo: "",                    // TODO couple's personal inbox — replies land here
+  // Left blank ON PURPOSE, not a TODO: with no replyTo header, replies go to
+  // the sending address — gabriellaandvictor@gmail.com — which is what we want.
+  // Only set this if replies should land somewhere OTHER than the wedding inbox.
+  replyTo: "",
   siteUrl: "https://josephjoshuangushual-create.github.io/gabriella-victor-wedding/",
   hashtag: "#OfGraceAndLove",
 
@@ -66,7 +79,7 @@ var C = { TS: 0, ITEM: 1, NAME: 2, EMAIL: 3, PHONE: 4, MSG: 5, SHOW: 6, STATUS: 
 var LIVE_STATUSES = ["held", "ordered", "received"];
 
 function getSheet(key) {
-  var ss = SpreadsheetApp.getActiveSpreadsheet();
+  var ss = SpreadsheetApp.openById(SHEET_ID);
   var sheet = ss.getSheetByName(SHEETS[key].name);
   if (!sheet) {
     sheet = ss.insertSheet(SHEETS[key].name);
