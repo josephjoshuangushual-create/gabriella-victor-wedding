@@ -28,7 +28,7 @@ const CONFIG = {
 
   // Gift accounts (PLACEHOLDER — replace with real details)
   gifts: [
-    { title: "Bank Transfer (Naira)", bank: "Bank name coming soon", account: "0000000000", holder: "Account name" },
+    { title: "Bank Transfer (Naira)", bank: "Access Bank", account: "1685111168", holder: "Gabriella Dalang" },
   ],
 
   // The 12 curated moments shown first (focal = first entry, ring = the rest)

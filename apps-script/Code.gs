@@ -48,9 +48,9 @@ var COUPLE = {
   hashtag: "#OfGraceAndLove",
 
   // Shown to guests who claim a group-gift share (they transfer, couple buys)
-  bankName: "",                   // TODO
-  accountNumber: "",              // TODO
-  accountName: "",                // TODO
+  bankName: "Access Bank",
+  accountNumber: "1685111168",
+  accountName: "Gabriella Dalang",
 
   // Offered as the easy option at vendor checkout
   deliveryName: "",               // TODO
