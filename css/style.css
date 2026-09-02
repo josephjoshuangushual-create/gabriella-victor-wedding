@@ -651,3 +651,5 @@ body.has-gift-bar .gifting { padding-bottom: 8rem; }
   .gift-bar { padding-left: 1.1rem; gap: 0.7rem; }
   .gift-bar-total { display: none; }
 }
+.registry-thumb .ph-mark[hidden] { display: none; }
+.registry-img { width: 100%; height: 100%; object-fit: cover; }

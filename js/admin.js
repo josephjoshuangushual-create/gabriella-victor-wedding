@@ -237,7 +237,7 @@ function exportOpts(width) {
     title: "The Third Canvas",
     subtitle: "Gabriella & Victor",
     date: "24th October 2026",
-    hashtag: "#OfGraceAndLove",
+    hashtag: "#HisGlory26",
   };
 }
 

@@ -22,7 +22,7 @@ Everything that will change lives in `CONFIG` at the top of [js/main.js](js/main
 
 The Q&A answers and story copy are in `index.html` directly.
 
-**Current placeholders to replace when the couple confirms:** wedding date, venues, dress themes, colours, hashtag (currently `#OfGraceAndLove`).
+**Current placeholders to replace when the couple confirms:** wedding date, venues, dress themes, colours, hashtag (currently `#HisGlory26`).
 
 ## Enabling the backend (one time)
 

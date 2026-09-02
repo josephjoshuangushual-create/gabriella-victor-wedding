@@ -6,7 +6,7 @@ const CONFIG = {
   // Wedding date (WAT = +01:00); time of day still TBC
   weddingDate: "2026-10-24T10:00:00+01:00",
   weddingDateLabel: "Saturday, 24th October 2026 · Warri, Nigeria",
-  hashtag: "#OfGraceAndLove",
+  hashtag: "#HisGlory26",
 
   // Backend URL — set it once in js/config.js (shared with the admin page).
   scriptUrl: GV_SCRIPT_URL,
@@ -18,10 +18,12 @@ const CONFIG = {
     { name: "Kingsley", phone: "08138453545", tel: "+2348138453545" },
   ],
 
+  // The exact venue and start time are deliberately NOT public — they go only
+  // to guests who have RSVP'd, with their access card closer to the day.
   schedule: {
-    churchDate: "Saturday, 24th October 2026 · Time TBA",
-    churchVenue: "NNPC Housing Complex, Warri, Delta State",
-    churchDress: "To be announced",
+    churchDate: "Saturday, 24th October 2026",
+    churchVenue: "Warri, Delta State, Nigeria",
+    churchDress: "Anything on our colour palette — whatever makes you feel comfortable and pretty/handsome",
   },
 
   // Colors of the day (drawn from the pre-wedding shoot palette; dress themes TBC)
@@ -63,6 +65,7 @@ const CONFIG = {
 };
 
 const IMG_BASE = "assets/img/web/";
+const IMG_GIFTS = "assets/img/gifts/";
 const backendReady = () => CONFIG.scriptUrl.startsWith("https://");
 
 /* ── Welcome overlay ── */
@@ -818,9 +821,14 @@ function renderRegistry() {
     else if (group) state = `${item.taken} of ${item.shares} shares taken`;
     else state = "Available";
 
-    const thumb = item.image
-      ? `<img src="${esc(item.image)}" alt="${esc(item.name)}" loading="lazy">`
-      : `<span class="ph-mark">${esc((item.name || "?").trim().charAt(0))}</span>`;
+    // Use the Sheet's Image column if set, otherwise fall back to the filename
+    // convention assets/img/gifts/<id>.jpg — so photos can be added by simply
+    // dropping files in, with no Sheet edit. A missing file degrades to the
+    // lettered placeholder rather than a broken-image icon.
+    const letter = esc((item.name || "?").trim().charAt(0));
+    const thumb = `<img class="registry-img" src="${esc(item.image || IMG_GIFTS + item.id + ".jpg")}"
+        alt="${esc(item.name)}" loading="lazy" data-letter="${letter}">
+      <span class="ph-mark" hidden>${letter}</span>`;
 
     const price = group && item.sharePrice
       ? `<p class="registry-price">${naira(item.price)} total</p><p class="registry-share-note">Join from ${naira(item.sharePrice)}</p>`
@@ -843,6 +851,19 @@ function renderRegistry() {
         </span>
       </button>`;
   }).join("");
+
+  registryGrid.querySelectorAll(".registry-img").forEach(img => {
+    const showPlaceholder = () => {
+      img.hidden = true;
+      const ph = img.nextElementSibling;
+      if (ph) ph.hidden = false;
+    };
+    // A cached or fast 404 can fire `error` before this listener attaches, so
+    // check the already-settled case too — otherwise a missing photo leaves a
+    // broken-image icon instead of the letter.
+    if (img.complete && img.naturalWidth === 0) showPlaceholder();
+    else img.addEventListener("error", showPlaceholder, { once: true });
+  });
 
   registryGrid.querySelectorAll(".registry-card:not(.taken)").forEach(card =>
     card.addEventListener("click", () => toggleGift(card.dataset.id)));

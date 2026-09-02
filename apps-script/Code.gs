@@ -45,7 +45,7 @@ var COUPLE = {
   // Only set this if replies should land somewhere OTHER than the wedding inbox.
   replyTo: "",
   siteUrl: "https://josephjoshuangushual-create.github.io/gabriella-victor-wedding/",
-  hashtag: "#OfGraceAndLove",
+  hashtag: "#HisGlory26",
 
   // Shown to guests who claim a group-gift share (they transfer, couple buys)
   bankName: "Access Bank",
