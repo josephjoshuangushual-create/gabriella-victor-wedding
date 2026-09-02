@@ -1135,21 +1135,65 @@ giftForm.addEventListener("submit", async e => {
   }
 });
 
+/* The catalog is ~3KB but Apps Script takes 2-3s to answer, so keep the last
+   response and paint from it immediately. Anything claimed in the meantime is
+   corrected when the fresh copy lands a moment later, and a stale "available"
+   is harmless — the server refuses the claim and the panel explains why. */
+const REG_CACHE = "gv_registry_cache";
+const REG_CACHE_MAX_AGE = 6 * 60 * 60 * 1000;
+
+function readRegistryCache() {
+  try {
+    const raw = localStorage.getItem(REG_CACHE);
+    if (!raw) return null;
+    const { at, data } = JSON.parse(raw);
+    if (!at || Date.now() - at > REG_CACHE_MAX_AGE) return null;
+    return data && Array.isArray(data.items) ? data : null;
+  } catch (err) { return null; }
+}
+function writeRegistryCache(data) {
+  try { localStorage.setItem(REG_CACHE, JSON.stringify({ at: Date.now(), data })); } catch (err) {}
+}
+
+/* Pull the photos into cache in the background so they are already there when
+   the cards scroll into view, instead of starting to download at that moment. */
+function warmGiftImages() {
+  registryItems.forEach(it => {
+    const img = new Image();
+    img.decoding = "async";
+    img.src = it.image || IMG_GIFTS + it.id + ".jpg";
+  });
+}
+
+function applyRegistry(data) {
+  registryItems = data.items;
+  registryBank = data.bank;
+  registryDelivery = data.delivery;
+  renderRegistry();
+}
+
 async function loadRegistry() {
   if (backendReady()) {
     try {
       const res = await fetch(CONFIG.scriptUrl + "?action=registry");
       const data = await res.json();
       if (data && Array.isArray(data.items)) {
-        registryItems = data.items;
-        registryBank = data.bank;
-        registryDelivery = data.delivery;
+        writeRegistryCache(data);
+        applyRegistry(data);
+        warmGiftImages();
+        return;
       }
-    } catch (err) { /* fall through to the placeholder */ }
+    } catch (err) { /* keep whatever is already on screen */ }
   }
   renderRegistry();
 }
-renderRegistry();
-new IntersectionObserver((entries, obs) => {
-  if (entries.some(e => e.isIntersecting)) { loadRegistry(); obs.disconnect(); }
-}, { rootMargin: "600px" }).observe(registryGrid);
+
+// Paint from the last known catalog straight away, then refresh.
+const cachedReg = readRegistryCache();
+if (cachedReg) { applyRegistry(cachedReg); warmGiftImages(); }
+else renderRegistry();
+
+// Start the request on load rather than on scroll: the gifting section sits
+// near the bottom, so waiting for it to come into view meant a guest arrived
+// to an empty grid and then waited out the full round trip.
+loadRegistry();
