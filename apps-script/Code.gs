@@ -380,6 +380,75 @@ function money(n) {
   return "₦" + Number(n).toLocaleString("en-NG");
 }
 
+/* ── Email shell ──────────────────────────────────────────────────────────
+   Table-based, inline styles only: Gmail strips <style> blocks and ignores
+   flexbox. 600px is the safe width. Every email also carries a plain-text
+   alternative, which matters both for accessibility and for spam scoring. */
+
+var MAIL = {
+  paper: "#efe9dd", ink: "#2b2620", dim: "#6c6455",
+  sage: "#9caf88", line: "#ded5c4", card: "#f6f2e9",
+};
+
+function mailShell(headline, innerHtml) {
+  var img = COUPLE.siteUrl.replace(/\/$/, "") + "/assets/img/email/header.jpg";
+  var h = '<!doctype html><html><body style="margin:0;padding:0;background:' + MAIL.paper + ';">'
+    + '<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="background:' + MAIL.paper + ';padding:24px 12px;">'
+    + '<tr><td align="center">'
+    + '<table role="presentation" width="600" cellpadding="0" cellspacing="0" border="0" style="width:600px;max-width:100%;background:#ffffff;border:1px solid ' + MAIL.line + ';border-radius:8px;overflow:hidden;">'
+
+    // banner
+    + '<tr><td style="padding:0;"><img src="' + img + '" width="600" alt="' + escapeHtml(COUPLE.names) + '"'
+    + ' style="display:block;width:100%;max-width:600px;height:auto;border:0;"></td></tr>'
+
+    // name + hashtag
+    + '<tr><td align="center" style="padding:28px 32px 0 32px;font-family:Georgia,\'Times New Roman\',serif;">'
+    + '<div style="font-family:Helvetica,Arial,sans-serif;font-size:11px;letter-spacing:3px;text-transform:uppercase;color:' + MAIL.dim + ';">'
+    + escapeHtml(COUPLE.names) + '</div>'
+    + '<div style="font-family:Helvetica,Arial,sans-serif;font-size:11px;letter-spacing:3px;text-transform:uppercase;color:' + MAIL.sage + ';padding-top:6px;">'
+    + escapeHtml(COUPLE.hashtag) + '</div>'
+    + '<div style="font-size:28px;line-height:1.25;color:' + MAIL.ink + ';padding:14px 0 0 0;">' + headline + '</div>'
+    + '<div style="width:44px;height:1px;background:' + MAIL.line + ';margin:20px auto 0 auto;"></div>'
+    + '</td></tr>'
+
+    // body
+    + '<tr><td style="padding:22px 32px 32px 32px;font-family:Georgia,\'Times New Roman\',serif;font-size:15px;line-height:1.65;color:' + MAIL.ink + ';">'
+    + innerHtml
+    + '</td></tr>'
+
+    + '<tr><td style="padding:18px 32px 26px 32px;border-top:1px solid ' + MAIL.line + ';font-family:Helvetica,Arial,sans-serif;font-size:12px;line-height:1.6;color:' + MAIL.dim + ';" align="center">'
+    + 'Saturday, 24th October 2026 &middot; Warri, Delta State<br>'
+    + '<a href="' + COUPLE.siteUrl + '" style="color:' + MAIL.sage + ';text-decoration:none;">' + escapeHtml(shortUrl(COUPLE.siteUrl)) + '</a>'
+    + '</td></tr>'
+
+    + '</table></td></tr></table></body></html>';
+  return h;
+}
+
+function shortUrl(u) {
+  return String(u).replace(/^https?:\/\//, "").replace(/\/$/, "");
+}
+
+function mailButton(href, label) {
+  return '<table role="presentation" cellpadding="0" cellspacing="0" border="0" style="margin:22px auto;"><tr>'
+    + '<td align="center" style="background:' + MAIL.sage + ';border-radius:999px;">'
+    + '<a href="' + href + '" style="display:inline-block;padding:14px 34px;font-family:Helvetica,Arial,sans-serif;'
+    + 'font-size:12px;letter-spacing:2px;text-transform:uppercase;color:#ffffff;text-decoration:none;">' + escapeHtml(label) + '</a>'
+    + '</td></tr></table>';
+}
+
+function mailHeading(text) {
+  return '<div style="font-family:Helvetica,Arial,sans-serif;font-size:11px;letter-spacing:2.5px;text-transform:uppercase;'
+    + 'color:' + MAIL.dim + ';padding:24px 0 10px 0;">' + escapeHtml(text) + '</div>';
+}
+
+function mailPanel(inner) {
+  return '<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="background:' + MAIL.card
+    + ';border:1px solid ' + MAIL.line + ';border-radius:6px;margin:6px 0;"><tr>'
+    + '<td style="padding:16px 18px;font-family:Georgia,\'Times New Roman\',serif;font-size:15px;line-height:1.7;color:' + MAIL.ink + ';">'
+    + inner + '</td></tr></table>';
+}
+
 function sendClaimEmail(name, email, claimed, batchId) {
   var base = ScriptApp.getService().getUrl();
   var firstName = name.split(" ")[0];
@@ -387,51 +456,79 @@ function sendClaimEmail(name, email, claimed, batchId) {
   var shareItems = claimed.filter(function (c) { return c.shares > 1 && !c.whole; });
   var shareTotal = shareItems.reduce(function (s, c) { return s + (c.amount || 0); }, 0);
 
-  var html = '<div style="font-family:Georgia,serif;color:#2b2721;max-width:560px;line-height:1.6">';
-  html += '<p style="font-size:20px;margin:0 0 4px">Thank you, ' + escapeHtml(firstName) + ' 💛</p>';
-  html += '<p style="color:#6b6459;margin:0 0 20px">' + escapeHtml(COUPLE.names) + ' · ' + escapeHtml(COUPLE.hashtag) + '</p>';
-  html += '<p>Your gift is set aside so no one else picks the same thing. Truly, thank you — there is no rush at all.</p>';
+  var b = '<p style="margin:0 0 4px 0;">Dear ' + escapeHtml(firstName) + ',</p>'
+    + '<p style="margin:12px 0 0 0;">Your gift is set aside, so no one else picks the same thing. '
+    + 'Truly, thank you &mdash; there is no rush at all.</p>';
+
+  var text = "Dear " + firstName + ",\n\nYour gift is set aside, so no one else picks the same thing. "
+    + "Truly, thank you - there is no rush at all.\n";
 
   if (wholeItems.length) {
-    html += '<p style="margin-top:22px"><strong>To buy directly</strong></p><ul style="padding-left:18px">';
+    b += mailHeading("To buy directly");
+    text += "\nTO BUY DIRECTLY\n";
     wholeItems.forEach(function (c) {
-      html += '<li style="margin-bottom:6px"><a href="' + c.url + '">' + escapeHtml(c.name) + '</a>'
-           + (c.price ? ' · ' + money(c.price) : '') + ' <span style="color:#6b6459">(' + escapeHtml(c.vendor) + ')</span>'
-           + (c.whole ? ' <span style="color:#6b6459">— you are covering this one in full 💛</span>' : '') + '</li>';
+      b += '<div style="padding:2px 0 10px 0;">'
+        + '<a href="' + c.url + '" style="color:' + MAIL.ink + ';font-size:16px;">' + escapeHtml(c.name) + '</a>'
+        + '<div style="font-family:Helvetica,Arial,sans-serif;font-size:12px;color:' + MAIL.dim + ';padding-top:3px;">'
+        + escapeHtml(c.vendor) + (c.price ? " &middot; " + money(c.price) : "")
+        + (c.whole ? ' &middot; <span style="color:' + MAIL.sage + ';">you are covering this one in full</span>' : "")
+        + '</div></div>';
+      text += "- " + c.name + (c.price ? " (" + money(c.price) + ")" : "") + "\n  " + c.url + "\n";
     });
-    html += '</ul>';
     if (COUPLE.deliveryAddress) {
-      html += '<p style="background:#f5f1e8;padding:12px 14px;border-radius:6px"><strong>Easiest option — have it delivered to us:</strong><br>'
-           + escapeHtml(COUPLE.deliveryName) + '<br>' + escapeHtml(COUPLE.deliveryAddress) + '<br>' + escapeHtml(COUPLE.deliveryPhone)
-           + '<br><span style="color:#6b6459">Or bring it on the day — whichever suits you.</span></p>';
+      b += mailPanel('<strong style="font-family:Helvetica,Arial,sans-serif;font-size:12px;letter-spacing:1px;text-transform:uppercase;color:' + MAIL.dim + ';">Easiest option</strong><br>'
+        + 'Have it delivered straight to us:<br><br>'
+        + escapeHtml(COUPLE.deliveryName) + '<br>' + escapeHtml(COUPLE.deliveryAddress) + '<br>' + escapeHtml(COUPLE.deliveryPhone)
+        + '<br><span style="color:' + MAIL.dim + ';font-size:14px;">Or bring it on the day &mdash; whichever suits you.</span>');
+      text += "\nDeliver to: " + COUPLE.deliveryName + ", " + COUPLE.deliveryAddress + ", " + COUPLE.deliveryPhone + "\n";
     }
   }
 
   if (shareItems.length) {
-    html += '<p style="margin-top:22px"><strong>To send your share' + (shareItems.length > 1 ? 's' : '') + '</strong></p><ul style="padding-left:18px">';
+    b += mailHeading("To send your share" + (shareItems.length > 1 ? "s" : ""));
+    text += "\nTO SEND YOUR SHARE" + (shareItems.length > 1 ? "S" : "") + "\n";
+    var lines = "";
     shareItems.forEach(function (c) {
-      html += '<li style="margin-bottom:6px">' + escapeHtml(c.name) + ' — ' + money(c.amount)
-           + (c.qty > 1 ? ' <span style="color:#6b6459">(' + c.qty + ' shares)</span>' : '') + '</li>';
+      lines += escapeHtml(c.name) + (c.amount ? ' &mdash; ' + money(c.amount) : "")
+        + (c.qty > 1 ? ' <span style="color:' + MAIL.dim + ';font-size:14px;">(' + c.qty + ' shares)</span>' : "") + '<br>';
+      text += "- " + c.name + (c.amount ? " - " + money(c.amount) : "") + (c.qty > 1 ? " (" + c.qty + " shares)" : "") + "\n";
     });
-    html += '</ul>';
-    html += '<p style="background:#f5f1e8;padding:12px 14px;border-radius:6px">'
-         + (shareItems.length > 1 ? '<strong>One transfer of ' + money(shareTotal) + ' covers all of them.</strong><br>' : '')
-         + escapeHtml(COUPLE.bankName) + '<br>' + escapeHtml(COUPLE.accountNumber) + '<br>' + escapeHtml(COUPLE.accountName) + '</p>';
+    if (shareItems.length > 1 && shareTotal) {
+      lines += '<br><span style="color:' + MAIL.sage + ';">One transfer of ' + money(shareTotal) + ' covers them all.</span><br>';
+      text += "One transfer of " + money(shareTotal) + " covers them all.\n";
+    }
+    lines += '<br><strong style="font-family:Helvetica,Arial,sans-serif;font-size:12px;letter-spacing:1px;text-transform:uppercase;color:' + MAIL.dim + ';">Where to send it</strong><br>'
+      + escapeHtml(COUPLE.bankName) + '<br>' + escapeHtml(COUPLE.accountNumber) + '<br>' + escapeHtml(COUPLE.accountName);
+    text += COUPLE.bankName + " / " + COUPLE.accountNumber + " / " + COUPLE.accountName + "\n";
+    b += mailPanel(lines);
+    b += '<p style="margin:10px 0 0 0;font-size:14px;color:' + MAIL.dim + ';">We will buy it once the shares are complete.</p>';
   }
 
-  html += '<p style="margin-top:26px">Once you have done it, one tap here lets us know:</p>';
-  html += '<p><a href="' + base + '?action=confirm&batch=' + batchId + '" style="background:#9caf88;color:#fff;padding:12px 22px;border-radius:999px;text-decoration:none;display:inline-block">I have done this</a></p>';
+  b += '<p style="margin:26px 0 0 0;">Once you have done it, one tap here lets us know:</p>';
+  b += mailButton(base + "?action=confirm&batch=" + batchId, "I have done this");
+  text += "\nWhen done, confirm here:\n" + base + "?action=confirm&batch=" + batchId + "\n";
+
   if (claimed.length > 1) {
-    html += '<p style="color:#6b6459;font-size:14px">Buying them at different times? Confirm one at a time:<br>';
+    b += '<p style="margin:0;font-size:14px;color:' + MAIL.dim + ';">Buying them at different times? Confirm one at a time:</p>'
+      + '<div style="font-size:14px;padding-top:6px;">';
     claimed.forEach(function (c) {
-      html += '· <a href="' + base + '?action=confirm&token=' + c.token + '">' + escapeHtml(c.name) + '</a><br>';
+      b += '&middot; <a href="' + base + '?action=confirm&token=' + c.token + '" style="color:' + MAIL.sage + ';">' + escapeHtml(c.name) + '</a><br>';
     });
-    html += '</p>';
+    b += '</div>';
   }
-  html += '<p style="color:#6b6459;font-size:14px;margin-top:26px">If you change your mind, just reply to this email — no explanation needed. We are simply glad you are celebrating with us.</p>';
-  html += '</div>';
 
-  var opts = { to: email, name: COUPLE.names, subject: "Thank you, " + firstName + " 💛", htmlBody: html };
+  b += '<p style="margin:26px 0 0 0;font-size:14px;color:' + MAIL.dim + ';">If you change your mind, just reply to this email &mdash; '
+    + 'no explanation needed. We are simply glad you are celebrating with us.</p>';
+  text += "\nIf you change your mind, just reply - no explanation needed.\n\n"
+    + COUPLE.names + "\n" + shortUrl(COUPLE.siteUrl) + "\n";
+
+  var opts = {
+    to: email,
+    name: COUPLE.names,
+    subject: "Thank you, " + firstName,
+    htmlBody: mailShell("Thank you, " + escapeHtml(firstName), b),
+    body: text,
+  };
   if (COUPLE.replyTo) opts.replyTo = COUPLE.replyTo;
   MailApp.sendEmail(opts);
 }
@@ -564,12 +661,20 @@ function adminOp(p) {
     var to = String(values[C.EMAIL]);
     var who = String(values[C.NAME]).split(" ")[0];
     if (!to) return { ok: false, error: "no email" };
-    var subject = String(p.subject || (op === "nudge" ? "A note from " + COUPLE.names : "Thank you 💛"));
+    var subject = String(p.subject || (op === "nudge" ? "A note from " + COUPLE.names : "Thank you"));
     var body = String(p.body || "").slice(0, 4000);
-    var html = '<div style="font-family:Georgia,serif;color:#2b2721;max-width:560px;line-height:1.6">'
-      + body.split("\n").map(function (line) { return "<p>" + escapeHtml(line) + "</p>"; }).join("")
-      + '<p style="color:#6b6459;font-size:14px">' + escapeHtml(COUPLE.names) + " · " + escapeHtml(COUPLE.hashtag) + '</p></div>';
-    var opts = { to: to, name: COUPLE.names, subject: subject, htmlBody: html };
+    // same shell as the claim email, so everything a guest receives matches
+    var inner = body.split("\n").map(function (line) {
+      return line.trim()
+        ? '<p style="margin:0 0 12px 0;">' + escapeHtml(line) + '</p>'
+        : '<div style="height:6px;"></div>';
+    }).join("");
+    var headline = op === "nudge" ? "Just checking in" : "Thank you";
+    var opts = {
+      to: to, name: COUPLE.names, subject: subject,
+      htmlBody: mailShell(headline, inner),
+      body: body + "\n\n" + COUPLE.names + "\n" + shortUrl(COUPLE.siteUrl) + "\n",
+    };
     if (COUPLE.replyTo) opts.replyTo = COUPLE.replyTo;
     MailApp.sendEmail(opts);
     if (op === "nudge") {
