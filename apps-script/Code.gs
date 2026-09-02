@@ -621,7 +621,36 @@ function adminRead(p) {
   });
   var claims = order.map(function (k) { return groups[k]; });
 
-  return { ok: true, items: items, claims: claims, bank: publicBank(), delivery: publicDelivery() };
+  // Everything a guest can post, so it can be moderated or cleared after testing
+  var wishRows = getSheet("wish").getDataRange().getValues().slice(1);
+  var wishes = wishRows.map(function (r, i) {
+    return {
+      row: i + 2,
+      name: String(r[1] || ""),
+      message: String(r[2] || ""),
+      hasPhoto: !!r[3],
+      hidden: String(r[4]).toLowerCase() === "no",
+      when: r[0] ? new Date(r[0]).toISOString().slice(0, 10) : "",
+    };
+  }).reverse();
+
+  var strokeRows = getSheet("stroke").getDataRange().getValues().slice(1);
+  var strokes = strokeRows.map(function (r, i) {
+    var pts = 0;
+    try { pts = JSON.parse(String(r[4] || "[]")).length; } catch (e) { pts = 0; }
+    return {
+      row: i + 2,
+      name: String(r[1] || ""),
+      color: String(r[2] || ""),
+      size: Number(r[3]) || 0,
+      points: pts,
+      hidden: String(r[5]).toLowerCase() === "no",
+      when: r[0] ? new Date(r[0]).toISOString().slice(0, 10) : "",
+    };
+  }).reverse();
+
+  return { ok: true, items: items, claims: claims, wishes: wishes, strokes: strokes,
+           bank: publicBank(), delivery: publicDelivery() };
 }
 
 function adminOp(p) {
@@ -637,12 +666,28 @@ function adminOp(p) {
     var all = sheet.getDataRange().getValues();
     for (var i = 1; i < all.length; i++) {
       if (String(all[i][C.TOKEN]) === token && String(all[i][C.STATUS]).toLowerCase() !== "released") rows.push(i + 1);
+      else if (String(all[i][C.TOKEN]) === token && op === "held") rows.push(i + 1);
     }
   }
   if (!rows.length) {
     var row = Number(p.row);
     if (!row || row < 2) return { ok: false, error: "bad row" };
     rows = [row];
+  }
+
+  // Moderation on the guest-posted feeds. `kind` is "wish" or "stroke";
+  // hide flips the approved column, delete removes the row for good.
+  if (op === "hide" || op === "show" || op === "drop") {
+    var kind = String(p.kind || "");
+    if (kind !== "wish" && kind !== "stroke") return { ok: false, error: "bad kind" };
+    var sh = getSheet(kind);
+    var r = Number(p.row);
+    if (!r || r < 2 || r > sh.getLastRow()) return { ok: false, error: "bad row" };
+    var approvedCol = kind === "wish" ? 5 : 6;   // Wishes col E, Canvas col F
+    if (op === "drop") sh.deleteRow(r);
+    else sh.getRange(r, approvedCol).setValue(op === "hide" ? "no" : "yes");
+    CacheService.getScriptCache().remove(kind === "wish" ? "wishes" : "strokes");
+    return { ok: true };
   }
 
   if (op === "release" || op === "received" || op === "ordered" || op === "held") {

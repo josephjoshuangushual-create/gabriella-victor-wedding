@@ -68,7 +68,7 @@ $("adTabs").querySelectorAll(".ad-tab").forEach(btn =>
   btn.addEventListener("click", () => {
     view = btn.dataset.view;
     $("adTabs").querySelectorAll(".ad-tab").forEach(b => b.classList.toggle("active", b === btn));
-    ["board", "unconfirmed", "received", "links", "canvas"].forEach(v =>
+    ["board", "unconfirmed", "received", "links", "canvas", "moderation"].forEach(v =>
       $("view" + v.charAt(0).toUpperCase() + v.slice(1)).hidden = v !== view);
     if (view === "canvas") drawPreview();
   }));
@@ -130,10 +130,10 @@ function render() {
   /* Received */
   const arrivals = claims.filter(c => c.status === "ordered" || c.status === "received");
   $("viewReceived").innerHTML = arrivals.length
-    ? arrivals.map(c => rowHtml(c, c.status === "ordered"
+    ? arrivals.map(c => rowHtml(c, (c.status === "ordered"
         ? [`<button class="btn btn-light sm" data-op="received" data-row="${c.row}" data-token="${esc(c.token || "")}">Mark received</button>`]
         : [`<button class="btn btn-outline sm" data-mail="thanks" data-row="${c.row}" data-token="${esc(c.token || "")}">Send thank-you</button>`]
-      )).join("")
+      ).concat([`<button class="btn btn-outline sm" data-op="release" data-row="${c.row}" data-token="${esc(c.token || "")}">Release</button>`]))).join("")
     : `<p class="ad-empty">Nothing marked as ordered yet.</p>`;
 
   /* Link health */
@@ -146,6 +146,36 @@ function render() {
         <a class="btn btn-outline sm" href="${esc(it.url)}" target="_blank" rel="noopener">Open ↗</a>
       </div>`).join("")
     : `<p class="ad-empty">All links checked recently and priced.</p>`;
+
+  /* Moderation — everything a guest can post, so a test run leaves nothing behind */
+  const wishes = DATA.wishes || [];
+  const strokes = DATA.strokes || [];
+  $("adCountMod").textContent = (wishes.length + strokes.length) ? "· " + (wishes.length + strokes.length) : "";
+
+  const modRow = (kind, r, title, sub) => `<div class="ad-row${r.hidden ? " ad-dim" : ""}">
+      <div class="ad-row-main">
+        <div class="ad-row-title">${title}</div>
+        <div class="ad-row-sub">${sub}</div>
+      </div>
+      ${r.hidden ? `<span class="ad-pill">hidden</span>` : ""}
+      <div class="ad-row-acts">
+        <button class="btn btn-outline sm" data-mod="${r.hidden ? "show" : "hide"}" data-kind="${kind}" data-row="${r.row}">${r.hidden ? "Show" : "Hide"}</button>
+        <button class="btn btn-outline sm ad-danger" data-mod="drop" data-kind="${kind}" data-row="${r.row}" data-label="${esc(r.name || "this entry")}">Delete</button>
+      </div>
+    </div>`;
+
+  $("viewModeration").innerHTML =
+    `<p class="ad-muted ad-fine">Hide keeps an entry but takes it off the site. Delete removes it permanently &mdash; use that to clear your own test entries.</p>`
+    + `<h3 style="margin-top:1.6rem">Wish Wall <span class="ad-muted">(${wishes.length})</span></h3>`
+    + (wishes.length ? wishes.map(w => modRow("wish", w,
+        `${esc(w.name || "Anonymous")}${w.hasPhoto ? ` <span class="ad-qty">photo</span>` : ""}`,
+        `${esc((w.message || "").slice(0, 90))}${(w.message || "").length > 90 ? "…" : ""} · ${esc(w.when)}`)).join("")
+      : `<p class="ad-empty">No wishes yet.</p>`)
+    + `<h3 style="margin-top:2rem">Canvas signatures <span class="ad-muted">(${strokes.length})</span></h3>`
+    + (strokes.length ? strokes.map(st => modRow("stroke", st,
+        esc(st.name || "Unsigned"),
+        `${st.points} points · <span style="color:${esc(st.color)}">■</span> ${esc(st.color)} · ${esc(st.when)}`)).join("")
+      : `<p class="ad-empty">No signatures yet.</p>`);
 
   wireRowButtons();
 }
@@ -170,6 +200,16 @@ function wireRowButtons() {
   }));
   document.querySelectorAll("[data-mail]").forEach(b =>
     b.addEventListener("click", () => openMail(b.dataset.mail, Number(b.dataset.row))));
+
+  document.querySelectorAll("[data-mod]").forEach(b => b.addEventListener("click", async () => {
+    // deleting is permanent, so make them mean it
+    if (b.dataset.mod === "drop" && !confirm(`Permanently delete ${b.dataset.label}? This cannot be undone.`)) return;
+    b.disabled = true;
+    const out = await api({ action: "op", op: b.dataset.mod, kind: b.dataset.kind, row: b.dataset.row })
+      .catch(() => ({ ok: false }));
+    if (out.ok) { await refresh(); if (view === "canvas") loadStrokes(); }
+    else b.disabled = false;
+  }));
 }
 
 /* ── Email composer — every send is a deliberate click ── */
