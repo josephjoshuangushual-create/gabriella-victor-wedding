@@ -44,7 +44,7 @@ var COUPLE = {
   // the sending address — gabriellaandvictor@gmail.com — which is what we want.
   // Only set this if replies should land somewhere OTHER than the wedding inbox.
   replyTo: "",
-  siteUrl: "https://josephjoshuangushual-create.github.io/gabriella-victor-wedding/",
+  siteUrl: "https://gabriellaandvictor.vercel.app/",
   hashtag: "#HisGlory26",
 
   // Shown to guests who claim a group-gift share (they transfer, couple buys)
@@ -417,7 +417,7 @@ function mailShell(headline, innerHtml) {
     + '</td></tr>'
 
     + '<tr><td style="padding:18px 32px 26px 32px;border-top:1px solid ' + MAIL.line + ';font-family:Helvetica,Arial,sans-serif;font-size:12px;line-height:1.6;color:' + MAIL.dim + ';" align="center">'
-    + 'Saturday, 24th October 2026 &middot; Warri, Delta State<br>'
+    + 'Saturday, 24th October 2026<br>'
     + '<a href="' + COUPLE.siteUrl + '" style="color:' + MAIL.sage + ';text-decoration:none;">' + escapeHtml(shortUrl(COUPLE.siteUrl)) + '</a>'
     + '</td></tr>'
 
