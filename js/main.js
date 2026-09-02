@@ -908,9 +908,14 @@ function toggleGift(id) {
 }
 
 function updateGiftBar() {
-  // drop anything that got claimed by someone else while we were deciding
-  selectedGifts = selectedGifts.filter(id => { const it = giftById(id); return it && it.available > 0; });
-  saveSelection();
+  // Drop anything claimed by someone else while we were deciding — but only
+  // once the catalog is actually loaded. renderRegistry() also runs before the
+  // first fetch resolves, and filtering then would wipe a selection restored
+  // from localStorage (and save the empty list back over it).
+  if (registryItems.length) {
+    selectedGifts = selectedGifts.filter(id => { const it = giftById(id); return it && it.available > 0; });
+    saveSelection();
+  }
 
   const n = selectedGifts.length;
   giftBar.hidden = n === 0;
