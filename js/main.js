@@ -1020,6 +1020,15 @@ function renderGiftDone(claimed, taken) {
   const shareTotal = shares.reduce((s, c) => s + (c.amount || 0), 0);
   let html = "";
 
+  if (claimed.length) {
+    html += `<div class="gift-mailnote">
+        <strong>Check your email &mdash; we have just sent you a copy.</strong>
+        It has this list and a one-tap link to tell us once you are done.
+        <span class="gm-spam">If it is not in your inbox, please look in your spam folder</span>
+        &mdash; and marking it &ldquo;not spam&rdquo; helps our notes reach everyone else too.
+      </div>`;
+  }
+
   const short = claimed.filter(c => c.shortfall > 0);
   if (short.length) {
     html += `<p class="gift-taken-note">${short.map(c =>
@@ -1066,8 +1075,8 @@ function renderGiftDone(claimed, taken) {
   }
 
   if (claimed.length) {
-    html += `<p class="gift-fineprint">We have emailed you this list with a one-tap link to let us know once it is done.
-      There is no deadline and no pressure at all — and if you change your mind, just reply to that email.</p>`;
+    html += `<p class="gift-fineprint">There is no deadline and no pressure at all &mdash;
+      and if you change your mind, just reply to that email. No explanation needed.</p>`;
   }
 
   document.getElementById("giftDoneTitle").textContent = claimed.length ? "Thank you — truly 💛" : "Those ones just went";

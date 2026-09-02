@@ -669,3 +669,13 @@ body.has-gift-bar .gifting { padding-bottom: 8rem; }
 .gc-opt b { font-weight: 400; color: var(--ink); }
 .gc-qty { color: var(--ink-dim); font-size: 0.8rem; }
 .gb-full { font-style: normal; font-size: 0.72rem; color: var(--sage); display: block; margin-top: 0.15rem; }
+.gift-mailnote {
+  background: rgba(156, 175, 136, 0.12);
+  border: 1px solid rgba(156, 175, 136, 0.45);
+  border-radius: 6px;
+  padding: 0.95rem 1.05rem;
+  font-size: 0.86rem; line-height: 1.6; color: var(--ink-dim);
+  margin-bottom: 0.4rem;
+}
+.gift-mailnote strong { display: block; color: var(--ink); font-weight: 400; margin-bottom: 0.3rem; }
+.gift-mailnote .gm-spam { color: var(--sage); }
