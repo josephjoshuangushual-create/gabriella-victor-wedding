@@ -780,6 +780,7 @@ let registryBank = null;
 let registryDelivery = null;
 let giftFilter = "all";
 let selectedGifts = [];
+let giftQty = {};            // itemId -> number of share slots this guest is taking
 let myGifts = [];
 try {
   selectedGifts = JSON.parse(localStorage.getItem("gv_gift_sel") || "[]");
@@ -789,6 +790,23 @@ try {
 const MAX_GIFT_BATCH = 5;
 const naira = n => (n ? "₦" + Number(n).toLocaleString("en-NG") : "");
 const giftById = id => registryItems.find(i => i.id === id);
+
+/** How many slots this guest is taking of an item (1 for whole items). */
+function qtyFor(id) {
+  const it = giftById(id);
+  if (!it) return 1;
+  if (it.shares <= 1) return 1;
+  return Math.min(Math.max(1, giftQty[id] || 1), it.available);
+}
+/** What that comes to in naira. Covering every share of an untouched item
+    costs the item's actual price, not shares x rounded-up share price. */
+function giftAmount(id) {
+  const it = giftById(id);
+  if (!it) return 0;
+  if (it.shares <= 1) return it.price;
+  const q = qtyFor(id);
+  return (q === it.shares && it.taken === 0) ? it.price : it.sharePrice * q;
+}
 
 function saveSelection() {
   try { localStorage.setItem("gv_gift_sel", JSON.stringify(selectedGifts)); } catch (err) {}
@@ -899,10 +917,7 @@ function updateGiftBar() {
   document.body.classList.toggle("has-gift-bar", n > 0);
   if (!n) return;
 
-  const total = selectedGifts.reduce((sum, id) => {
-    const it = giftById(id);
-    return sum + (it ? (it.shares > 1 ? it.sharePrice : it.price) : 0);
-  }, 0);
+  const total = selectedGifts.reduce((sum, id) => sum + giftAmount(id), 0);
   document.getElementById("giftBarCount").textContent = `${n} gift${n === 1 ? "" : "s"} selected`;
   document.getElementById("giftBarTotal").textContent = total ? naira(total) : "";
 }
@@ -911,18 +926,46 @@ function renderChosenList() {
   document.getElementById("giftChosenList").innerHTML = selectedGifts.map(id => {
     const it = giftById(id);
     if (!it) return "";
-    const amount = it.shares > 1 ? it.sharePrice : it.price;
+    const q = qtyFor(id);
+
+    // group gifts let the giver choose how much of it to cover
+    let picker = "";
+    if (it.shares > 1 && it.available > 1) {
+      const opts = [];
+      for (let n = 1; n <= it.available; n++) {
+        const isAll = n === it.available;
+        const amt = (n === it.shares && it.taken === 0) ? it.price : it.sharePrice * n;
+        const label = isAll
+          ? (it.taken === 0 ? "The whole gift" : "The rest of it")
+          : n === 1 ? "One share" : `${n} shares`;
+        opts.push(`<label class="gc-opt${n === q ? " on" : ""}">
+            <input type="radio" name="qty-${esc(id)}" value="${n}" ${n === q ? "checked" : ""}>
+            <span>${label}</span><b>${naira(amt)}</b></label>`);
+      }
+      picker = `<div class="gc-picker"><p class="gc-picker-q">How much would you like to give?</p>${opts.join("")}</div>`;
+    }
+
     return `<li>
-        <span class="gc-name">${esc(it.name)}${it.shares > 1 ? " <em>(one share)</em>" : ""}</span>
-        <span class="gc-price">${amount ? naira(amount) : ""}</span>
-        <button class="gc-drop" type="button" data-drop="${esc(id)}" aria-label="Remove ${esc(it.name)}">&times;</button>
+        <div class="gc-row">
+          <span class="gc-name">${esc(it.name)}</span>
+          <span class="gc-price">${giftAmount(id) ? naira(giftAmount(id)) : ""}</span>
+          <button class="gc-drop" type="button" data-drop="${esc(id)}" aria-label="Remove ${esc(it.name)}">&times;</button>
+        </div>${picker}
       </li>`;
   }).join("");
-  document.getElementById("giftChosenList").querySelectorAll(".gc-drop").forEach(b =>
+
+  const list = document.getElementById("giftChosenList");
+  list.querySelectorAll(".gc-drop").forEach(b =>
     b.addEventListener("click", () => {
       toggleGift(b.dataset.drop);
       if (!selectedGifts.length) closeGiftModal();
       else renderChosenList();
+    }));
+  list.querySelectorAll(".gc-picker input").forEach(r =>
+    r.addEventListener("change", () => {
+      giftQty[r.name.replace(/^qty-/, "")] = Number(r.value);
+      renderChosenList();
+      updateGiftBar();
     }));
 }
 
@@ -967,10 +1010,16 @@ async function copyText(text, btn) {
 }
 
 function renderGiftDone(claimed, taken) {
-  const whole = claimed.filter(c => c.shares <= 1);
-  const shares = claimed.filter(c => c.shares > 1);
-  const shareTotal = shares.reduce((s, c) => s + (c.sharePrice || 0), 0);
+  const whole = claimed.filter(c => c.shares <= 1 || c.whole);
+  const shares = claimed.filter(c => c.shares > 1 && !c.whole);
+  const shareTotal = shares.reduce((s, c) => s + (c.amount || 0), 0);
   let html = "";
+
+  const short = claimed.filter(c => c.shortfall > 0);
+  if (short.length) {
+    html += `<p class="gift-taken-note">${short.map(c =>
+      `Someone took ${c.shortfall} share${c.shortfall === 1 ? "" : "s"} of the ${esc(c.name)} just before you, so you have ${c.qty} instead.`).join(" ")}</p>`;
+  }
 
   if (taken && taken.length) {
     const names = taken.map(t => t.name || "one of your picks").join(", ");
@@ -982,7 +1031,7 @@ function renderGiftDone(claimed, taken) {
   if (whole.length) {
     html += `<div class="gift-block"><h4>To buy directly</h4><ul class="gift-buylist">`
       + whole.map(c => `<li><a href="${esc(c.url)}" target="_blank" rel="noopener">
-          <span>${esc(c.name)}</span>
+          <span>${esc(c.name)}${c.whole ? ` <em class="gb-full">covering this in full 💛</em>` : ""}</span>
           <span class="gb-vendor">${esc(c.vendor)}${c.price ? " · " + naira(c.price) : ""} ↗</span></a></li>`).join("")
       + `</ul></div>`;
 
@@ -1001,7 +1050,7 @@ function renderGiftDone(claimed, taken) {
     const bank = registryBank || {};
     const lines = [bank.bankName, bank.accountNumber, bank.accountName].filter(Boolean).join("\n");
     html += `<div class="gift-block"><h4>To send your share${shares.length > 1 ? "s" : ""}</h4><div class="gift-copybox">`
-      + shares.map(c => `${esc(c.name)}${c.sharePrice ? " — " + naira(c.sharePrice) : ""}<br>`).join("")
+      + shares.map(c => `${esc(c.name)}${c.amount ? " — " + naira(c.amount) : ""}${c.qty > 1 ? ` <span class="gc-qty">(${c.qty} shares)</span>` : ""}<br>`).join("")
       + (shares.length > 1 && shareTotal ? `<br><span class="gc-total">One transfer of ${naira(shareTotal)} covers all of them.</span><br>` : "")
       // never show an empty details box — say what happens next instead
       + (lines
@@ -1041,7 +1090,7 @@ giftForm.addEventListener("submit", async e => {
   try {
     const url = new URL(CONFIG.scriptUrl);
     url.searchParams.set("action", "claim");
-    url.searchParams.set("items", selectedGifts.join(","));
+    url.searchParams.set("items", selectedGifts.map(id => id + ":" + qtyFor(id)).join(","));
     url.searchParams.set("name", data.name || "");
     url.searchParams.set("email", data.email || "");
     url.searchParams.set("phone", data.phone || "");

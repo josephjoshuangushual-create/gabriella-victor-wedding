@@ -85,7 +85,10 @@ function render() {
   const pledged = claims.filter(c => LIVE.indexOf(c.status) >= 0).reduce((sum, c) => {
     const it = DATA.items.find(i => i.id === c.itemId);
     if (!it) return sum;
-    return sum + (it.shares > 1 ? Math.ceil(it.price / it.shares) : it.price);
+    const q = c.qty || 1;
+    // covering every share of an item is the item's price, not q x rounded share
+    if (it.shares > 1 && q === it.shares) return sum + it.price;
+    return sum + (it.shares > 1 ? Math.ceil(it.price / it.shares) * q : it.price);
   }, 0);
 
   $("adStats").innerHTML = [
@@ -118,9 +121,9 @@ function render() {
   /* Unconfirmed */
   $("viewUnconfirmed").innerHTML = held.length
     ? held.sort((a, b) => b.ageDays - a.ageDays).map(c => rowHtml(c, [
-        `<button class="btn btn-outline sm" data-mail="nudge" data-row="${c.row}">Send gentle check-in</button>`,
-        `<button class="btn btn-outline sm" data-op="ordered" data-row="${c.row}">Mark ordered</button>`,
-        `<button class="btn btn-outline sm" data-op="release" data-row="${c.row}">Release hold</button>`,
+        `<button class="btn btn-outline sm" data-mail="nudge" data-row="${c.row}" data-token="${esc(c.token || "")}">Send gentle check-in</button>`,
+        `<button class="btn btn-outline sm" data-op="ordered" data-row="${c.row}" data-token="${esc(c.token || "")}">Mark ordered</button>`,
+        `<button class="btn btn-outline sm" data-op="release" data-row="${c.row}" data-token="${esc(c.token || "")}">Release hold</button>`,
       ])).join("")
     : `<p class="ad-empty">Nothing waiting. Every gift is confirmed.</p>`;
 
@@ -128,8 +131,8 @@ function render() {
   const arrivals = claims.filter(c => c.status === "ordered" || c.status === "received");
   $("viewReceived").innerHTML = arrivals.length
     ? arrivals.map(c => rowHtml(c, c.status === "ordered"
-        ? [`<button class="btn btn-light sm" data-op="received" data-row="${c.row}">Mark received</button>`]
-        : [`<button class="btn btn-outline sm" data-mail="thanks" data-row="${c.row}">Send thank-you</button>`]
+        ? [`<button class="btn btn-light sm" data-op="received" data-row="${c.row}" data-token="${esc(c.token || "")}">Mark received</button>`]
+        : [`<button class="btn btn-outline sm" data-mail="thanks" data-row="${c.row}" data-token="${esc(c.token || "")}">Send thank-you</button>`]
       )).join("")
     : `<p class="ad-empty">Nothing marked as ordered yet.</p>`;
 
@@ -150,7 +153,7 @@ function render() {
 function rowHtml(c, actions) {
   return `<div class="ad-row">
     <div class="ad-row-main">
-      <div class="ad-row-title">${esc(c.name)} — ${esc(itemName(c.itemId))}</div>
+      <div class="ad-row-title">${esc(c.name)} — ${esc(itemName(c.itemId))}${c.qty > 1 ? ` <span class="ad-qty">${c.qty} shares</span>` : ""}</div>
       <div class="ad-row-sub">${esc(c.email)}${c.phone ? " · " + esc(c.phone) : ""} · ${c.ageDays} day${c.ageDays === 1 ? "" : "s"} ago${c.nudged ? " · nudged " + esc(c.nudged) : ""}${c.showName ? "" : " · name hidden"}</div>
       ${c.message ? `<div class="ad-msg">“${esc(c.message)}”</div>` : ""}
     </div>
@@ -162,7 +165,7 @@ function rowHtml(c, actions) {
 function wireRowButtons() {
   document.querySelectorAll("[data-op]").forEach(b => b.addEventListener("click", async () => {
     b.disabled = true;
-    const out = await api({ action: "op", op: b.dataset.op, row: b.dataset.row }).catch(() => ({ ok: false }));
+    const out = await api({ action: "op", op: b.dataset.op, row: b.dataset.row, token: b.dataset.token || "" }).catch(() => ({ ok: false }));
     if (out.ok) await refresh(); else b.disabled = false;
   }));
   document.querySelectorAll("[data-mail]").forEach(b =>
@@ -181,12 +184,14 @@ const TEMPLATES = {
   }),
 };
 let mailRow = null;
+let mailToken = "";
 
 function openMail(kind, row) {
   const c = DATA.claims.find(x => x.row === row);
   if (!c) return;
   const t = TEMPLATES[kind](c);
   mailRow = row;
+  mailToken = c.token || "";
   $("adMailKind").textContent = kind === "nudge" ? "Gentle check-in" : "Thank you";
   $("adMailTo").textContent = "To " + c.name + " · " + c.email;
   $("adMailSubject").value = t.subject;
@@ -204,7 +209,7 @@ $("adMailForm").addEventListener("submit", async e => {
   $("adMailNote").textContent = "Sending…";
   $("adMailNote").className = "form-note";
   const out = await api({
-    action: "op", op: $("adMailForm").dataset.kind, row: mailRow,
+    action: "op", op: $("adMailForm").dataset.kind, row: mailRow, token: mailToken || "",
     subject: $("adMailSubject").value, body: $("adMailBody").value,
   }).catch(() => ({ ok: false }));
   btn.disabled = false;

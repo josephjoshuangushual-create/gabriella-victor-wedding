@@ -265,23 +265,32 @@ function claimGifts(p) {
   try {
     lock.waitLock(20000);
 
-    var ids = String(p.items || "").split(",").map(function (s) { return s.trim(); }).filter(String);
+    // items arrive as "<id>" or "<id>:<qty>" — qty lets one guest cover several
+    // share slots of the same gift, up to and including the whole thing.
+    var requests = String(p.items || "").split(",").map(function (s) {
+      var bits = String(s).trim().split(":");
+      return { id: bits[0].trim(), qty: Math.max(1, Math.min(20, Number(bits[1]) || 1)) };
+    }).filter(function (r) { return r.id; });
+    var ids = requests.map(function (r) { return r.id; });
     var name = String(p.name || "").trim();
     var email = String(p.email || "").trim();
     if (!ids.length) return { ok: false, error: "no items" };
     if (!name || !email) return { ok: false, error: "name and email required" };
     if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) return { ok: false, error: "invalid email" };
     if (String(p.hp || "")) return { ok: true, claimed: [], taken: [] }; // honeypot: pretend success
-    ids = ids.slice(0, MAX_BATCH);
+    requests = requests.slice(0, MAX_BATCH);
 
     var sheet = getSheet("claim");
     var rows = sheet.getDataRange().getValues().slice(1);
 
     // rate limit: how many open holds does this address already carry?
-    var open = 0;
+    var openItems = {};
     rows.forEach(function (r) {
-      if (String(r[C.EMAIL]).toLowerCase() === email.toLowerCase() && String(r[C.STATUS]).toLowerCase() === "held") open++;
+      if (String(r[C.EMAIL]).toLowerCase() === email.toLowerCase() && String(r[C.STATUS]).toLowerCase() === "held") {
+        openItems[String(r[C.ITEM])] = true;
+      }
     });
+    var open = Object.keys(openItems).length;
     if (open >= MAX_OPEN_PER_EMAIL) return { ok: false, error: "limit", message: "You already have " + open + " gifts on hold." };
 
     // live availability, computed inside the lock
@@ -303,24 +312,43 @@ function claimGifts(p) {
     var now = new Date();
     var claimed = [], taken = [], newRows = [], seen = {};
 
-    ids.forEach(function (id) {
+    requests.forEach(function (req) {
+      var id = req.id;
       if (seen[id]) return;
       seen[id] = true;
       var row = reg[id];
       if (!row || String(row[R.ACTIVE]).toLowerCase() === "no") { taken.push({ id: id, reason: "gone" }); return; }
       var shares = Math.max(1, Number(row[R.SHARES]) || 1);
-      if ((counts[id] || 0) >= shares) { taken.push({ id: id, reason: "taken", name: String(row[R.NAME]) }); return; }
-      counts[id] = (counts[id] || 0) + 1;
-      var token = Utilities.getUuid();
-      newRows.push([now, id, name, email, phone, message, showName, "held", token, batchId, "", "", ""]);
+      var priorTaken = counts[id] || 0;
+      var free = shares - priorTaken;
+      if (free <= 0) { taken.push({ id: id, reason: "taken", name: String(row[R.NAME]) }); return; }
+
+      var qty = Math.min(req.qty, free);       // never oversell, even if the page was stale
+      var price = Number(row[R.PRICE]) || 0;
+      var sharePrice = shares > 1 && price ? Math.ceil(price / shares) : 0;
+      // Buying every share of an untouched item IS buying the item, so that
+      // guest gets the vendor link. If others already sent cash, the couple is
+      // holding it and does the buying, so this guest transfers too.
+      var whole = (priorTaken === 0 && qty === shares);
+      var token = Utilities.getUuid();       // one token per gift, shared by its rows
+
+      for (var k = 0; k < qty; k++) {
+        newRows.push([now, id, name, email, phone, message, showName, "held", token, batchId, "", "", ""]);
+      }
+      counts[id] = priorTaken + qty;
+
       claimed.push({
         id: id,
         name: String(row[R.NAME]),
         url: String(row[R.URL] || ""),
         vendor: String(row[R.VENDOR] || ""),
-        price: Number(row[R.PRICE]) || 0,
+        price: price,
         shares: shares,
-        sharePrice: shares > 1 && Number(row[R.PRICE]) ? Math.ceil(Number(row[R.PRICE]) / shares) : 0,
+        sharePrice: sharePrice,
+        qty: qty,
+        whole: whole,
+        amount: whole ? price : sharePrice * qty,
+        shortfall: req.qty - qty,            // asked for more than was left
         token: token,
       });
     });
@@ -355,9 +383,9 @@ function money(n) {
 function sendClaimEmail(name, email, claimed, batchId) {
   var base = ScriptApp.getService().getUrl();
   var firstName = name.split(" ")[0];
-  var wholeItems = claimed.filter(function (c) { return c.shares <= 1; });
-  var shareItems = claimed.filter(function (c) { return c.shares > 1; });
-  var shareTotal = shareItems.reduce(function (s, c) { return s + (c.sharePrice || 0); }, 0);
+  var wholeItems = claimed.filter(function (c) { return c.shares <= 1 || c.whole; });
+  var shareItems = claimed.filter(function (c) { return c.shares > 1 && !c.whole; });
+  var shareTotal = shareItems.reduce(function (s, c) { return s + (c.amount || 0); }, 0);
 
   var html = '<div style="font-family:Georgia,serif;color:#2b2721;max-width:560px;line-height:1.6">';
   html += '<p style="font-size:20px;margin:0 0 4px">Thank you, ' + escapeHtml(firstName) + ' 💛</p>';
@@ -368,7 +396,8 @@ function sendClaimEmail(name, email, claimed, batchId) {
     html += '<p style="margin-top:22px"><strong>To buy directly</strong></p><ul style="padding-left:18px">';
     wholeItems.forEach(function (c) {
       html += '<li style="margin-bottom:6px"><a href="' + c.url + '">' + escapeHtml(c.name) + '</a>'
-           + (c.price ? ' · ' + money(c.price) : '') + ' <span style="color:#6b6459">(' + escapeHtml(c.vendor) + ')</span></li>';
+           + (c.price ? ' · ' + money(c.price) : '') + ' <span style="color:#6b6459">(' + escapeHtml(c.vendor) + ')</span>'
+           + (c.whole ? ' <span style="color:#6b6459">— you are covering this one in full 💛</span>' : '') + '</li>';
     });
     html += '</ul>';
     if (COUPLE.deliveryAddress) {
@@ -381,7 +410,8 @@ function sendClaimEmail(name, email, claimed, batchId) {
   if (shareItems.length) {
     html += '<p style="margin-top:22px"><strong>To send your share' + (shareItems.length > 1 ? 's' : '') + '</strong></p><ul style="padding-left:18px">';
     shareItems.forEach(function (c) {
-      html += '<li style="margin-bottom:6px">' + escapeHtml(c.name) + ' — ' + money(c.sharePrice) + '</li>';
+      html += '<li style="margin-bottom:6px">' + escapeHtml(c.name) + ' — ' + money(c.amount)
+           + (c.qty > 1 ? ' <span style="color:#6b6459">(' + c.qty + ' shares)</span>' : '') + '</li>';
     });
     html += '</ul>';
     html += '<p style="background:#f5f1e8;padding:12px 14px;border-radius:6px">'
@@ -466,18 +496,33 @@ function adminRead(p) {
     };
   });
 
-  var claims = claimRows.map(function (r, i) {
+  // A guest covering several shares of one gift produces one row per slot.
+  // Collapse them by token+status so the dashboard shows one line per gift
+  // with a share count, and one button that acts on the whole claim.
+  var groups = {};
+  var order = [];
+  claimRows.forEach(function (r, i) {
     var ts = r[C.TS] ? new Date(r[C.TS]).getTime() : now;
-    return {
-      row: i + 2,
-      itemId: String(r[C.ITEM]), name: String(r[C.NAME]), email: String(r[C.EMAIL]),
-      phone: String(r[C.PHONE] || ""), message: String(r[C.MSG] || ""),
-      showName: String(r[C.SHOW]).toLowerCase() === "yes",
-      status: String(r[C.STATUS]).toLowerCase(), batch: String(r[C.BATCH] || ""),
-      ageDays: Math.floor((now - ts) / 86400000),
-      nudged: r[C.NUDGE] ? new Date(r[C.NUDGE]).toISOString().slice(0, 10) : "",
-    };
+    var status = String(r[C.STATUS]).toLowerCase();
+    var token = String(r[C.TOKEN] || "");
+    var key = (token || ("r" + (i + 2))) + "|" + status;
+    if (!groups[key]) {
+      groups[key] = {
+        row: i + 2, rows: [], token: token,
+        itemId: String(r[C.ITEM]), name: String(r[C.NAME]), email: String(r[C.EMAIL]),
+        phone: String(r[C.PHONE] || ""), message: String(r[C.MSG] || ""),
+        showName: String(r[C.SHOW]).toLowerCase() === "yes",
+        status: status, batch: String(r[C.BATCH] || ""),
+        ageDays: Math.floor((now - ts) / 86400000),
+        nudged: r[C.NUDGE] ? new Date(r[C.NUDGE]).toISOString().slice(0, 10) : "",
+        qty: 0,
+      };
+      order.push(key);
+    }
+    groups[key].qty++;
+    groups[key].rows.push(i + 2);
   });
+  var claims = order.map(function (k) { return groups[k]; });
 
   return { ok: true, items: items, claims: claims, bank: publicBank(), delivery: publicDelivery() };
 }
@@ -485,19 +530,37 @@ function adminRead(p) {
 function adminOp(p) {
   if (!adminOk(p)) return { ok: false, error: "unauthorized" };
   var sheet = getSheet("claim");
-  var row = Number(p.row);
-  if (!row || row < 2) return { ok: false, error: "bad row" };
   var op = String(p.op || "");
 
+  // A claim may span several rows (one per share slot). Prefer the token so
+  // one click acts on the whole gift; fall back to a single row.
+  var rows = [];
+  var token = String(p.token || "");
+  if (token) {
+    var all = sheet.getDataRange().getValues();
+    for (var i = 1; i < all.length; i++) {
+      if (String(all[i][C.TOKEN]) === token && String(all[i][C.STATUS]).toLowerCase() !== "released") rows.push(i + 1);
+    }
+  }
+  if (!rows.length) {
+    var row = Number(p.row);
+    if (!row || row < 2) return { ok: false, error: "bad row" };
+    rows = [row];
+  }
+
   if (op === "release" || op === "received" || op === "ordered" || op === "held") {
-    sheet.getRange(row, C.STATUS + 1).setValue(op === "release" ? "released" : op);
-    if (op === "received") sheet.getRange(row, C.CONFIRMED + 1).setValue(new Date());
+    var value = op === "release" ? "released" : op;
+    var stamp = new Date();
+    rows.forEach(function (r) {
+      sheet.getRange(r, C.STATUS + 1).setValue(value);
+      if (op === "received") sheet.getRange(r, C.CONFIRMED + 1).setValue(stamp);
+    });
     CacheService.getScriptCache().remove("registry");
-    return { ok: true };
+    return { ok: true, rowsUpdated: rows.length };
   }
 
   if (op === "nudge" || op === "thanks") {
-    var values = sheet.getRange(row, 1, 1, SHEETS.claim.headers.length).getValues()[0];
+    var values = sheet.getRange(rows[0], 1, 1, SHEETS.claim.headers.length).getValues()[0];
     var to = String(values[C.EMAIL]);
     var who = String(values[C.NAME]).split(" ")[0];
     if (!to) return { ok: false, error: "no email" };
@@ -509,7 +572,10 @@ function adminOp(p) {
     var opts = { to: to, name: COUPLE.names, subject: subject, htmlBody: html };
     if (COUPLE.replyTo) opts.replyTo = COUPLE.replyTo;
     MailApp.sendEmail(opts);
-    if (op === "nudge") sheet.getRange(row, C.NUDGE + 1).setValue(new Date());
+    if (op === "nudge") {
+      var when = new Date();
+      rows.forEach(function (r) { sheet.getRange(r, C.NUDGE + 1).setValue(when); });
+    }
     return { ok: true, sentTo: who };
   }
 

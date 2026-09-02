@@ -653,3 +653,19 @@ body.has-gift-bar .gifting { padding-bottom: 8rem; }
 }
 .registry-thumb .ph-mark[hidden] { display: none; }
 .registry-img { width: 100%; height: 100%; object-fit: cover; }
+.gc-row { display: flex; align-items: center; gap: 0.7rem; }
+.gc-picker { margin: 0.6rem 0 0.2rem; padding-left: 0.2rem; }
+.gc-picker-q { font-size: 0.72rem; color: var(--ink-dim); margin-bottom: 0.45rem; }
+.gc-opt {
+  display: flex; align-items: center; gap: 0.6rem; cursor: pointer;
+  padding: 0.42rem 0.6rem; border: 1px solid var(--line); border-radius: 4px;
+  margin-bottom: 0.35rem; font-size: 0.82rem; transition: border-color 0.2s;
+}
+.gc-opt:hover { border-color: var(--ink-dim); }
+.gc-opt.on { border-color: var(--sage); background: rgba(156, 175, 136, 0.08); }
+.gc-opt input { accent-color: var(--sage); }
+.gc-opt span { flex: 1; color: var(--ink-dim); }
+.gc-opt.on span { color: var(--ink); }
+.gc-opt b { font-weight: 400; color: var(--ink); }
+.gc-qty { color: var(--ink-dim); font-size: 0.8rem; }
+.gb-full { font-style: normal; font-size: 0.72rem; color: var(--sage); display: block; margin-top: 0.15rem; }
