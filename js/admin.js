@@ -98,6 +98,8 @@ function render() {
   ].map(s => `<div class="ad-stat"><b>${s[1]}</b><span>${s[0]}</span></div>`).join("");
 
   $("adCountUnconfirmed").textContent = held.length ? "· " + held.length : "";
+  const recCount = ordered.length + received.length;
+  if ($("adCountRec")) $("adCountRec").textContent = recCount ? "· " + recCount : "";
   const stale = DATA.items.filter(i => i.active && (i.staleDays === null || i.staleDays > 30 || !i.price));
   $("adCountLinks").textContent = stale.length ? "· " + stale.length : "";
 
@@ -125,7 +127,9 @@ function render() {
         `<button class="btn btn-outline sm" data-op="ordered" data-row="${c.row}" data-token="${esc(c.token || "")}">Mark ordered</button>`,
         `<button class="btn btn-outline sm" data-op="release" data-row="${c.row}" data-token="${esc(c.token || "")}">Release hold</button>`,
       ])).join("")
-    : `<p class="ad-empty">Nothing waiting. Every gift is confirmed.</p>`;
+    : `<p class="ad-empty">Nothing waiting.${ordered.length + received.length
+        ? ` Once a guest taps &ldquo;I have done this&rdquo;, their gift moves to <strong>Ordered &amp; received</strong> &mdash; that is where you release it.`
+        : ""}</p>`;
 
   /* Received */
   const arrivals = claims.filter(c => c.status === "ordered" || c.status === "received");
@@ -134,7 +138,7 @@ function render() {
         ? [`<button class="btn btn-light sm" data-op="received" data-row="${c.row}" data-token="${esc(c.token || "")}">Mark received</button>`]
         : [`<button class="btn btn-outline sm" data-mail="thanks" data-row="${c.row}" data-token="${esc(c.token || "")}">Send thank-you</button>`]
       ).concat([`<button class="btn btn-outline sm" data-op="release" data-row="${c.row}" data-token="${esc(c.token || "")}">Release</button>`]))).join("")
-    : `<p class="ad-empty">Nothing marked as ordered yet.</p>`;
+    : `<p class="ad-empty">Nothing ordered yet. Gifts appear here once a guest confirms they have bought or sent it.</p>`;
 
   /* Link health */
   $("viewLinks").innerHTML = stale.length
