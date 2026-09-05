@@ -590,7 +590,15 @@ const tcNote = document.getElementById("tcNote");
 const tcUndo = document.getElementById("tcUndo");
 const tcSign = document.getElementById("tcSign");
 const tcName = document.getElementById("tcName");
-const TC_W = 1500, TC_H = 1000;
+/* The canvas is a wide world, not a single fixed sheet. It is measured in
+   panels of TC_PANEL x TC_H; the frame shows about one panel and scrolls
+   sideways. A spare empty panel is always kept at the end, so there is
+   somewhere to sign no matter how many people have already painted.
+   Nothing changes server-side: points are stored as plain numbers, so x
+   simply runs past 1500 into the next panel. */
+const TC_PANEL = 1500;
+const TC_W = TC_PANEL, TC_H = 1000;
+let tcWorldW = TC_PANEL;
 const TC_COLORS = ["#9caf88", "#c1683c", "#8b5e3c", "#e8ddc4", "#6e805f", "#c9a45c", "#4a4238"];
 const TC_SIZES = [6, 14, 26];
 let tcColor = TC_COLORS[0];
@@ -600,6 +608,13 @@ let pending = null;   // the guest's unsigned stroke
 let drawingStroke = null;
 let hoverIndex = -1;
 const signed = JSON.parse(localStorage.getItem("gv_stroke") || "null");
+const tcScroller = document.getElementById("tcScroller");
+const tcLeft = document.getElementById("tcLeft");
+const tcRight = document.getElementById("tcRight");
+const tcStart = document.getElementById("tcStart");
+const tcHint = document.getElementById("tcHint");
+const tcFrame = document.querySelector(".tc-frame");
+let painting = false;
 
 document.getElementById("tcPalette").innerHTML = TC_COLORS
   .map(c => `<button class="tc-swatch${c === tcColor ? " active" : ""}" type="button" style="background:${c}" data-c="${c}" aria-label="Colour ${c}"></button>`)
@@ -618,17 +633,46 @@ document.querySelectorAll(".tc-size").forEach(b => b.addEventListener("click", (
   if (pending) { pending.size = tcSize; drawCanvas(); }
 }));
 
+function tcUsedPanels() {
+  let maxX = 0;
+  strokes.forEach(s => (s.points || []).forEach(p => { if (p[0] > maxX) maxX = p[0]; }));
+  if (pending) pending.points.forEach(p => { if (p[0] > maxX) maxX = p[0]; });
+  return Math.max(1, Math.ceil(maxX / TC_PANEL));   // panels that actually contain paint
+}
+function tcRecomputeWorld() {
+  tcWorldW = (tcUsedPanels() + 1) * TC_PANEL;               // always one spare panel
+}
+
 function fitCanvas() {
   const dpr = Math.min(devicePixelRatio || 1, 2);
-  const w = tc.clientWidth;
-  tc.width = w * dpr;
-  tc.height = (w * TC_H / TC_W) * dpr;
+  const frameW = tcScroller.clientWidth;
+  // nothing laid out yet (section still off-screen on some browsers) — retry
+  if (!frameW) { requestAnimationFrame(fitCanvas); return; }
+  const panelsWide = tcWorldW / TC_PANEL;
+  // one panel fills the frame; the canvas element is as many frames wide
+  const cssW = frameW * panelsWide;
+  const cssH = frameW * TC_H / TC_PANEL;
+  tc.style.width = cssW + "px";
+  tc.style.height = cssH + "px";
+  tc.width = cssW * dpr;
+  tc.height = cssH * dpr;
   drawCanvas();
+  updateArrows();
+}
+
+function updateArrows() {
+  const canScroll = tcScroller.scrollWidth - tcScroller.clientWidth > 8;
+  const x = tcScroller.scrollLeft;
+  tcLeft.hidden = !canScroll || x < 8 || painting;
+  tcRight.hidden = !canScroll || x > tcScroller.scrollWidth - tcScroller.clientWidth - 8 || painting;
+}
+function tcScrollBy(dir) {
+  tcScroller.scrollBy({ left: dir * tcScroller.clientWidth * 0.9, behavior: reducedMotion ? "auto" : "smooth" });
 }
 addEventListener("resize", fitCanvas);
 
 function drawStroke(s, highlight) {
-  const scale = tc.width / TC_W;
+  const scale = tc.width / tcWorldW;
   const pts = s.points;
   if (pts.length < 2) return;
   tcCtx.save();
@@ -655,14 +699,15 @@ function updateTcCaption() {
 
 /* Painting (disabled once the guest has signed) */
 function canvasPoint(e) {
+  // the canvas element itself scrolls, so its rect already accounts for pan
   const r = tc.getBoundingClientRect();
   return [
-    Math.round((e.clientX - r.left) / r.width * TC_W),
+    Math.round((e.clientX - r.left) / r.width * tcWorldW),
     Math.round((e.clientY - r.top) / r.height * TC_H),
   ];
 }
 tc.addEventListener("pointerdown", e => {
-  if (signed || pending) return;
+  if (signed || pending || !painting) return;
   try { tc.setPointerCapture(e.pointerId); } catch (ignore) {}
   drawingStroke = { color: tcColor, size: tcSize, points: [canvasPoint(e)] };
 });
@@ -715,11 +760,40 @@ tc.addEventListener("pointerup", () => {
   drawCanvas();
   updateTcCaption();
 });
+/* Take the guest to the blank panel and switch drag-to-pan into
+   drag-to-paint, so nobody has to hunt for a gap. */
+function enterPaintMode() {
+  // Scroll to the blank panel FIRST: entering paint mode locks the scroller,
+  // so moving afterwards silently does nothing.
+  const target = tcUsedPanels() * (tcScroller.scrollWidth / (tcWorldW / TC_PANEL));
+  tcScroller.scrollLeft = target;
+
+  painting = true;
+  tcFrame.classList.add("painting");
+  tcStart.hidden = true;
+  tcHint.textContent = "Now drag on the canvas to paint your stroke.";
+  updateArrows();
+  tcNote.textContent = "Pick a colour, then paint one stroke.";
+}
+function exitPaintMode() {
+  painting = false;
+  tcFrame.classList.remove("painting");
+  tcStart.hidden = false;
+  tcHint.textContent = "Drag sideways to move along the canvas — there is always fresh space at the end.";
+  updateArrows();
+}
+
+tcStart.addEventListener("click", enterPaintMode);
+tcLeft.addEventListener("click", () => tcScrollBy(-1));
+tcRight.addEventListener("click", () => tcScrollBy(1));
+tcScroller.addEventListener("scroll", updateArrows, { passive: true });
+
 tcUndo.addEventListener("click", () => {
   pending = null;
   tcUndo.disabled = true;
   tcSign.disabled = true;
   tcNote.textContent = "Pick a colour, then paint one stroke on the canvas.";
+  exitPaintMode();
   drawCanvas();
   updateTcCaption();
 });
@@ -740,6 +814,9 @@ tcSign.addEventListener("click", async () => {
     strokes.push(stroke);
     localStorage.setItem("gv_stroke", JSON.stringify(stroke));
     pending = null;
+    exitPaintMode();
+    tcRecomputeWorld();
+    fitCanvas();
     tcTools.hidden = true;
     tcDone.hidden = false;
     drawCanvas();
@@ -762,10 +839,12 @@ async function loadStrokes() {
   if (signed && !strokes.some(s => s.name === signed.name && s.points.length === signed.points.length)) {
     strokes.push(signed);
   }
-  drawCanvas();
+  tcRecomputeWorld();
+  fitCanvas();
   updateTcCaption();
 }
 if (signed) { tcTools.hidden = true; tcDone.hidden = false; }
+tcRecomputeWorld();
 fitCanvas();
 new IntersectionObserver((entries, obs) => {
   if (entries.some(e => e.isIntersecting)) { loadStrokes(); obs.disconnect(); }

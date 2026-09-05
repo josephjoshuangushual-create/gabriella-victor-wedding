@@ -12,7 +12,7 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;1,400;1,500&family=Jost:wght@300;400;500&family=Caveat:wght@400;600&display=swap" rel="stylesheet">
 <!-- bump ?v= on both asset links whenever css/js change, so phones never serve stale copies -->
-<link rel="stylesheet" href="css/style.css?v=21">
+<link rel="stylesheet" href="css/style.css?v=24">
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='0.9em' font-size='90'>🤍</text></svg>">
 </head>
 <body class="no-scroll">
@@ -188,14 +188,20 @@
     <figcaption>Where it began — the actual two canvases 🎨</figcaption>
   </figure>
   <div class="tc-frame">
-    <canvas id="thirdCanvas"></canvas>
+    <div class="tc-scroller" id="tcScroller">
+      <canvas id="thirdCanvas"></canvas>
+    </div>
     <div class="tc-tooltip" id="tcTooltip" hidden></div>
+    <button class="tc-arrow tc-arrow-l" id="tcLeft" type="button" aria-label="Scroll canvas left" hidden>&#8249;</button>
+    <button class="tc-arrow tc-arrow-r" id="tcRight" type="button" aria-label="Scroll canvas right" hidden>&#8250;</button>
   </div>
+  <p class="tc-hint" id="tcHint">Drag sideways to move along the canvas &mdash; there is always fresh space at the end.</p>
   <p class="tc-caption" id="tcCaption">Loading the painting…</p>
   <div class="tc-tools" id="tcTools">
     <div class="tc-palette" id="tcPalette"></div>
     <div class="tc-sizes" id="tcSizes"></div>
     <div class="tc-actions">
+      <button class="btn btn-light sm" id="tcStart" type="button">Find me space to paint</button>
       <button class="btn btn-outline sm" id="tcUndo" type="button" disabled>Undo stroke</button>
       <input id="tcName" type="text" maxlength="40" placeholder="Sign your name">
       <button class="btn btn-light sm" id="tcSign" type="button" disabled>Sign &amp; add it</button>
@@ -387,8 +393,8 @@
   <button class="lightbox-next" id="lightboxNext" aria-label="Next">&#8250;</button>
 </div>
 
-<script src="js/config.js?v=21"></script>
-<script src="js/canvas-export.js?v=21"></script>
-<script src="js/main.js?v=21"></script>
+<script src="js/config.js?v=24"></script>
+<script src="js/canvas-export.js?v=24"></script>
+<script src="js/main.js?v=24"></script>
 </body>
 </html>

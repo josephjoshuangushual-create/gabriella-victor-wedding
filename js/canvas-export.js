@@ -47,10 +47,21 @@ const CanvasExport = (function () {
     return "rgb(" + c.join(",") + ")";
   }
 
-  function layout(width) {
+  /* The wall grows sideways as people sign, so the export must measure the
+     actual painted world rather than assume a single 1500-wide panel. */
+  function worldWidth(strokes) {
+    let maxX = TC_W;
+    (strokes || []).forEach(s => (s.points || []).forEach(p => { if (p[0] > maxX) maxX = p[0]; }));
+    // hug the actual painting rather than rounding out to a whole panel —
+    // a printed keepsake should not carry a slab of blank canvas
+    return Math.max(TC_W, maxX + 60);
+  }
+
+  function layout(width, world) {
+    const w = world || TC_W;
     const margin = Math.round(width * 0.06);
     const artW = width - margin * 2;
-    const artH = Math.round(artW * TC_H / TC_W);
+    const artH = Math.round(artW * TC_H / w);
     const titleH = Math.round(width * 0.10);
     return { width, margin, artW, artH, titleH, artX: margin, artY: margin + titleH };
   }
@@ -96,7 +107,7 @@ const CanvasExport = (function () {
    * Work out where each signature goes, skipping any that cannot fit.
    * Returns { placed: [{name,x,y,color}], skipped: n }
    */
-  function placeSignatures(ctx, strokes, scale, ox, oy, fontPx) {
+  function placeSignatures(ctx, strokes, scale, ox, oy, fontPx, worldW) {
     const boxes = [];
     const placed = [];
     let skipped = 0;
@@ -120,7 +131,7 @@ const CanvasExport = (function () {
           const y = a[1] * scale + oy + off[1];
           const box = { x: x - 2, y: y - h, w: w + 4, h: h + 4 };
           // keep signatures inside the art area
-          if (box.x < ox || box.x + box.w > ox + TC_W * scale || box.y < oy || box.y + box.h > oy + TC_H * scale) continue;
+          if (box.x < ox || box.x + box.w > ox + worldW * scale || box.y < oy || box.y + box.h > oy + TC_H * scale) continue;
           if (overlaps(box, boxes)) continue;
           boxes.push(box);
           placed.push({ name, x, y, color: darken(s.color) });
@@ -151,8 +162,9 @@ const CanvasExport = (function () {
   function render(canvas, strokes, opts) {
     const o = opts || {};
     const width = o.width || 4000;
-    const L = layout(width);
-    const scale = L.artW / TC_W;
+    const world = worldWidth(strokes);
+    const L = layout(width, world);
+    const scale = L.artW / world;
     const names = contributors(strokes);
 
     const ctx = canvas.getContext("2d");
@@ -205,7 +217,7 @@ const CanvasExport = (function () {
     // signatures
     let skipped = 0;
     if (o.signatures !== false) {
-      const sig = placeSignatures(ctx, strokes, scale, L.artX, L.artY, sigFont);
+      const sig = placeSignatures(ctx, strokes, scale, L.artX, L.artY, sigFont, world);
       ctx.font = sigFont + "px Caveat, cursive";
       sig.placed.forEach(p => { ctx.fillStyle = p.color; ctx.fillText(p.name, p.x, p.y); });
       skipped = sig.skipped;
@@ -246,8 +258,9 @@ const CanvasExport = (function () {
   function toSVG(strokes, opts, measureCanvas) {
     const o = opts || {};
     const width = o.width || 4000;
-    const L = layout(width);
-    const scale = L.artW / TC_W;
+    const world = worldWidth(strokes);
+    const L = layout(width, world);
+    const scale = L.artW / world;
     const names = contributors(strokes);
 
     const c = measureCanvas || document.createElement("canvas");
@@ -287,7 +300,7 @@ const CanvasExport = (function () {
 
     let skipped = 0;
     if (o.signatures !== false) {
-      const sig = placeSignatures(ctx, strokes, scale, L.artX, L.artY, sigFont);
+      const sig = placeSignatures(ctx, strokes, scale, L.artX, L.artY, sigFont, world);
       skipped = sig.skipped;
       sig.placed.forEach(p => {
         svg += '<text class="sig" x="' + Math.round(p.x) + '" y="' + Math.round(p.y) + '" font-size="' + sigFont + '" fill="' + p.color + '">' + esc(p.name) + '</text>\n';
@@ -307,5 +320,5 @@ const CanvasExport = (function () {
     return { svg, width, height, skipped, names };
   }
 
-  return { TC_W, TC_H, strokePath, strokeSvgPath, render, toSVG, contributors, layout, darken };
+  return { TC_W, TC_H, worldWidth, strokePath, strokeSvgPath, render, toSVG, contributors, layout, darken };
 })();
