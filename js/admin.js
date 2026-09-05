@@ -203,8 +203,10 @@ function render() {
   const chip = (key, label, n) =>
     `<button class="registry-filter${rsvpFilter === key ? " active" : ""}" type="button" data-rsvpf="${key}">${label}${n !== undefined ? ` (${n})` : ""}</button>`;
 
-  const st = DATA.settings || { rsvpOpen: true, rsvpClosedMsg: "" };
-  const rsvpSwitch = `
+  // Only offer the switch if the deployed backend actually supports it —
+  // a button that looks live but silently fails is worse than no button.
+  const st = DATA.settings;
+  const rsvpSwitch = !st ? "" : `
     <div class="ad-switch ${st.rsvpOpen ? "on" : "off"}">
       <div class="ad-switch-main">
         <b>${st.rsvpOpen ? "RSVPs are open" : "RSVPs are closed"}</b>
