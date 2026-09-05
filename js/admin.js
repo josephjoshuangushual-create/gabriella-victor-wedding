@@ -57,6 +57,7 @@ function showShell() {
   $("adGate").hidden = true;
   $("adShell").hidden = false;
   render();
+  syncNav();
   loadStrokes();
 }
 
@@ -66,6 +67,27 @@ async function refresh() {
 }
 
 /* ── Tabs ── */
+/* The gift totals only mean anything on the gift tabs; on RSVPs or Moderation
+   they were just pushing the actual content off a phone screen. */
+const GIFT_VIEWS = ["board", "unconfirmed", "received", "links"];
+
+function syncNav() {
+  const active = $("adTabs").querySelector(".ad-tab.active");
+  // the count chip is decoration — the label is the first text node
+  if (active) $("adNavLabel").textContent = (active.childNodes[0].textContent || "").trim();
+  $("adStats").hidden = GIFT_VIEWS.indexOf(view) === -1;
+  closeNav();
+}
+function closeNav() {
+  $("adTabs").classList.remove("open");
+  $("adNavToggle").setAttribute("aria-expanded", "false");
+}
+
+$("adNavToggle").addEventListener("click", () => {
+  const open = $("adTabs").classList.toggle("open");
+  $("adNavToggle").setAttribute("aria-expanded", open ? "true" : "false");
+});
+
 $("adTabs").querySelectorAll(".ad-tab").forEach(btn =>
   btn.addEventListener("click", () => {
     view = btn.dataset.view;
@@ -73,7 +95,15 @@ $("adTabs").querySelectorAll(".ad-tab").forEach(btn =>
     ["rsvp", "board", "unconfirmed", "received", "links", "canvas", "moderation"].forEach(v =>
       $("view" + v.charAt(0).toUpperCase() + v.slice(1)).hidden = v !== view);
     if (view === "canvas") drawPreview();
+    syncNav();
   }));
+
+// close the menu when tapping outside it
+document.addEventListener("click", e => {
+  if (!$("adTabs").classList.contains("open")) return;
+  if ($("adTabs").contains(e.target) || $("adNavToggle").contains(e.target)) return;
+  closeNav();
+});
 
 /* ── Rendering ── */
 const LIVE = ["held", "ordered", "received"];
@@ -173,7 +203,26 @@ function render() {
   const chip = (key, label, n) =>
     `<button class="registry-filter${rsvpFilter === key ? " active" : ""}" type="button" data-rsvpf="${key}">${label}${n !== undefined ? ` (${n})` : ""}</button>`;
 
-  $("viewRsvp").innerHTML = rsvps.length ? `
+  const st = DATA.settings || { rsvpOpen: true, rsvpClosedMsg: "" };
+  const rsvpSwitch = `
+    <div class="ad-switch ${st.rsvpOpen ? "on" : "off"}">
+      <div class="ad-switch-main">
+        <b>${st.rsvpOpen ? "RSVPs are open" : "RSVPs are closed"}</b>
+        <span>${st.rsvpOpen
+          ? "Guests can submit the form on the website."
+          : "The form is disabled and the backend refuses new replies."}</span>
+      </div>
+      <button class="btn ${st.rsvpOpen ? "btn-outline" : "btn-light"} sm" type="button" id="adRsvpToggle">
+        ${st.rsvpOpen ? "Close RSVPs" : "Reopen RSVPs"}
+      </button>
+    </div>
+    ${st.rsvpOpen ? "" : `<label class="ad-field" style="max-width:560px">
+        <span>Message shown to guests</span>
+        <input type="text" id="adRsvpMsg" class="ad-search" style="width:100%;border-radius:4px"
+          placeholder="RSVPs are now closed…" value="${esc(st.rsvpClosedMsg || "")}">
+      </label>`}`;
+
+  $("viewRsvp").innerHTML = rsvpSwitch + (rsvps.length ? `
     <div class="ad-stats" style="margin-bottom:1.4rem">
       <div class="ad-stat"><b>${yes.length}</b><span>Attending</span></div>
       <div class="ad-stat"><b>${no.length}</b><span>Cannot come</span></div>
@@ -201,7 +250,7 @@ function render() {
         <button class="btn btn-outline sm ad-danger" data-mod="drop" data-kind="rsvp" data-row="${r.row}" data-label="${esc(r.firstName + " " + r.lastName)}'s RSVP">Delete</button>
       </div>
     </div>`).join("") : `<p class="ad-empty">No RSVPs match that.</p>`}`
-    : `<p class="ad-empty">No RSVPs yet. They appear here the moment a guest submits the form.</p>`;
+    : `<p class="ad-empty">No RSVPs yet. They appear here the moment a guest submits the form.</p>`);
 
   /* Moderation — everything a guest can post, so a test run leaves nothing behind */
   const wishes = DATA.wishes || [];
@@ -256,6 +305,28 @@ function wireRowButtons() {
   }));
   document.querySelectorAll("[data-mail]").forEach(b =>
     b.addEventListener("click", () => openMail(b.dataset.mail, Number(b.dataset.row))));
+
+  const toggle = $("adRsvpToggle");
+  if (toggle) toggle.addEventListener("click", async () => {
+    const open = (DATA.settings || {}).rsvpOpen;
+    if (open && !confirm("Close RSVPs? Guests will no longer be able to submit the form.")) return;
+    toggle.disabled = true;
+    const out = await api({ action: "op", op: "setting", key: "rsvpOpen", value: open ? "no" : "yes" })
+      .catch(() => ({ ok: false }));
+    if (out.ok) await refresh(); else toggle.disabled = false;
+  });
+
+  const msgBox = $("adRsvpMsg");
+  if (msgBox) {
+    let t;
+    msgBox.addEventListener("input", () => {
+      clearTimeout(t);
+      t = setTimeout(async () => {
+        await api({ action: "op", op: "setting", key: "rsvpClosedMsg", value: msgBox.value }).catch(() => {});
+        if (DATA.settings) DATA.settings.rsvpClosedMsg = msgBox.value;   // keep without re-rendering mid-type
+      }, 700);
+    });
+  }
 
   document.querySelectorAll("[data-rsvpf]").forEach(b =>
     b.addEventListener("click", () => { rsvpFilter = b.dataset.rsvpf; render(); }));

@@ -8,8 +8,8 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Caveat:wght@400;600&family=Cormorant+Garamond:wght@300;400;500&family=Jost:wght@300;400;500&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="css/style.css?v=16">
-<link rel="stylesheet" href="css/admin.css?v=16">
+<link rel="stylesheet" href="css/style.css?v=18">
+<link rel="stylesheet" href="css/admin.css?v=18">
 </head>
 <body class="admin">
 
@@ -39,6 +39,11 @@
 
   <div class="ad-stats" id="adStats"></div>
 
+  <button class="ad-navtoggle" type="button" id="adNavToggle" aria-expanded="false" aria-controls="adTabs">
+    <span class="ad-burger" aria-hidden="true"><i></i><i></i><i></i></span>
+    <span id="adNavLabel">RSVPs</span>
+    <span class="ad-navchev" aria-hidden="true">&#9662;</span>
+  </button>
   <nav class="ad-tabs" id="adTabs">
     <button class="ad-tab active" type="button" data-view="rsvp">RSVPs <i id="adCountRsvp"></i></button>
     <button class="ad-tab" type="button" data-view="board">Board</button>
@@ -109,8 +114,8 @@
   </form>
 </div>
 
-<script src="js/config.js?v=16"></script>
-<script src="js/canvas-export.js?v=16"></script>
-<script src="js/admin.js?v=16"></script>
+<script src="js/config.js?v=18"></script>
+<script src="js/canvas-export.js?v=18"></script>
+<script src="js/admin.js?v=18"></script>
 </body>
 </html>

@@ -679,3 +679,5 @@ body.has-gift-bar .gifting { padding-bottom: 8rem; }
 }
 .gift-mailnote strong { display: block; color: var(--ink); font-weight: 400; margin-bottom: 0.3rem; }
 .gift-mailnote .gm-spam { color: var(--sage); }
+.card-form.form-closed { opacity: 0.6; }
+.card-form.form-closed .btn { cursor: not-allowed; }

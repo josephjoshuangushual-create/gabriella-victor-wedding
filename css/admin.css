@@ -107,3 +107,53 @@ body.admin { background: var(--bg); color: var(--ink); font-family: var(--sans);
 }
 .ad-search:focus { border-color: var(--sage); }
 .ad-row-acts a.btn { text-decoration: none; }
+.ad-switch {
+  display: flex; align-items: center; gap: 1rem; flex-wrap: wrap;
+  background: var(--card); border: 1px solid var(--line); border-left: 3px solid var(--sage);
+  border-radius: 6px; padding: 1rem 1.2rem; margin-bottom: 1.4rem;
+}
+.ad-switch.off { border-left-color: var(--terracotta); }
+.ad-switch-main { flex: 1; min-width: 220px; }
+.ad-switch-main b { display: block; font-weight: 400; font-size: 0.98rem; margin-bottom: 0.2rem; }
+.ad-switch-main span { font-size: 0.8rem; color: var(--ink-dim); }
+
+/* ── Tab navigation ──
+   Six tabs with long labels wrapped into a ragged three-line block on a
+   phone. Desktop keeps the row; mobile collapses it behind a menu button. */
+.ad-navtoggle { display: none; }
+
+@media (max-width: 760px) {
+  .ad-navtoggle {
+    display: flex; align-items: center; gap: 0.75rem; width: 100%;
+    background: var(--card); border: 1px solid var(--line); border-radius: 6px;
+    color: var(--ink); font-family: var(--sans);
+    font-size: 0.74rem; letter-spacing: 0.2em; text-transform: uppercase;
+    padding: 0.9rem 1.1rem; margin-bottom: 0.6rem; cursor: pointer;
+  }
+  .ad-navtoggle:hover { border-color: var(--ink-dim); }
+  .ad-navchev { margin-left: auto; color: var(--ink-dim); transition: rotate 0.2s ease; }
+  .ad-navtoggle[aria-expanded="true"] .ad-navchev { rotate: 180deg; }
+
+  .ad-burger { display: grid; gap: 3px; }
+  .ad-burger i { display: block; width: 15px; height: 1.5px; background: var(--sage); }
+
+  .ad-tabs { display: none; flex-direction: column; gap: 0; border-bottom: none; margin-bottom: 1.4rem; }
+  .ad-tabs.open { display: flex; }
+  .ad-tabs .ad-tab {
+    text-align: left; width: 100%;
+    border: 1px solid var(--line); border-radius: 6px;
+    padding: 0.85rem 1.1rem; margin-bottom: 0.4rem;
+    border-bottom: 1px solid var(--line);
+  }
+  .ad-tabs .ad-tab.active {
+    border-color: var(--sage); background: rgba(156, 175, 136, 0.1); color: var(--ink);
+  }
+  .ad-stats { grid-template-columns: repeat(auto-fit, minmax(104px, 1fr)); gap: 0.6rem; }
+  .ad-stat { padding: 0.8rem 0.9rem; }
+  .ad-stat b { font-size: 1.5rem; }
+  .ad-shell { padding: 1.5rem 1rem 4rem; }
+  .ad-row { padding: 0.95rem 1rem; }
+  .ad-row-acts { width: 100%; }
+  .ad-rsvp-tools { width: 100%; }
+  .ad-search { flex: 1; min-width: 0; }
+}

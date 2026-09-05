@@ -1169,7 +1169,24 @@ function applyRegistry(data) {
   registryItems = data.items;
   registryBank = data.bank;
   registryDelivery = data.delivery;
+  applyRsvpState(data);
   renderRegistry();
+}
+
+/* RSVPs can be closed from the admin. Default to open: if the backend is
+   slow or unreachable we would rather take a reply we can still see in the
+   Sheet than turn away a guest who came to answer. */
+function applyRsvpState(data) {
+  if (!data || data.rsvpOpen !== false) return;
+  const form = document.getElementById("rsvpForm");
+  if (!form || form.dataset.closed) return;
+  form.dataset.closed = "1";
+  form.querySelectorAll("input, select, textarea, button").forEach(el => { el.disabled = true; });
+  const note = form.querySelector("[data-form-note]");
+  const msg = (data.rsvpClosedMsg || "").trim()
+    || "RSVPs are now closed. If you still need to reach us, please call Adewumi or Kingsley — their numbers are in the footer.";
+  if (note) { note.textContent = msg; note.className = "form-note error"; }
+  form.classList.add("form-closed");
 }
 
 async function loadRegistry() {

@@ -78,6 +78,21 @@ var C = { TS: 0, ITEM: 1, NAME: 2, EMAIL: 3, PHONE: 4, MSG: 5, SHOW: 6, STATUS: 
 /* Statuses that occupy a share slot */
 var LIVE_STATUSES = ["held", "ordered", "received"];
 
+/* Small settings store in Script Properties. Read at runtime, so flipping one
+   takes effect immediately — no redeploy, unlike anything in the COUPLE block. */
+var SETTINGS_DEFAULTS = { rsvpOpen: "yes", rsvpClosedMsg: "" };
+
+function getSetting(key) {
+  var v = PropertiesService.getScriptProperties().getProperty("set_" + key);
+  return v === null || v === undefined ? SETTINGS_DEFAULTS[key] : v;
+}
+function setSetting(key, value) {
+  if (!(key in SETTINGS_DEFAULTS)) return false;
+  PropertiesService.getScriptProperties().setProperty("set_" + key, String(value));
+  return true;
+}
+function rsvpIsOpen() { return String(getSetting("rsvpOpen")).toLowerCase() !== "no"; }
+
 function getSheet(key) {
   var ss = SpreadsheetApp.openById(SHEET_ID);
   var sheet = ss.getSheetByName(SHEETS[key].name);
@@ -104,6 +119,9 @@ function doPost(e) {
     var cache = CacheService.getScriptCache();
 
     if (data.type === "rsvp") {
+      // Enforced here as well as in the page: a stale tab, or someone poking
+      // the endpoint directly, must not land a row after RSVPs are closed.
+      if (!rsvpIsOpen()) return json({ ok: false, error: "rsvp closed" });
       getSheet("rsvp").appendRow([
         new Date(), data.firstName || "", data.lastName || "", data.email || "",
         data.phone || "", data.side || "", data.attending || "", data.relationship || "",
@@ -236,7 +254,10 @@ function buildRegistry() {
         givers: idx[id] ? idx[id].names : [],
       };
     });
-  return { items: items, bank: publicBank(), delivery: publicDelivery() };
+  return {
+    items: items, bank: publicBank(), delivery: publicDelivery(),
+    rsvpOpen: rsvpIsOpen(), rsvpClosedMsg: String(getSetting("rsvpClosedMsg") || ""),
+  };
 }
 
 function publicBank() {
@@ -675,7 +696,8 @@ function adminRead(p) {
   }).reverse();
 
   return { ok: true, items: items, claims: claims, wishes: wishes, strokes: strokes,
-           rsvps: rsvps, bank: publicBank(), delivery: publicDelivery() };
+           rsvps: rsvps, bank: publicBank(), delivery: publicDelivery(),
+           settings: { rsvpOpen: rsvpIsOpen(), rsvpClosedMsg: String(getSetting("rsvpClosedMsg") || "") } };
 }
 
 function adminOp(p) {
@@ -698,6 +720,13 @@ function adminOp(p) {
     var row = Number(p.row);
     if (!row || row < 2) return { ok: false, error: "bad row" };
     rows = [row];
+  }
+
+  if (op === "setting") {
+    var k = String(p.key || "");
+    if (!setSetting(k, String(p.value === undefined ? "" : p.value))) return { ok: false, error: "unknown setting" };
+    CacheService.getScriptCache().remove("registry");   // the site reads this from the catalog
+    return { ok: true, key: k, value: getSetting(k) };
   }
 
   // Moderation on the guest-posted feeds. `kind` is "wish" or "stroke";
