@@ -99,3 +99,11 @@ body.admin { background: var(--bg); color: var(--ink); font-family: var(--sans);
 .ad-danger { color: var(--terracotta); border-color: rgba(193,104,60,0.4); }
 .ad-danger:hover { border-color: var(--terracotta); }
 .ad-view h3 { margin-bottom: 0.9rem; }
+.ad-rsvp-tools { display: flex; gap: 0.6rem; align-items: center; flex-wrap: wrap; }
+.ad-search {
+  background: var(--bg-soft); border: 1px solid var(--line); color: var(--ink);
+  font-family: var(--sans); font-size: 0.82rem; padding: 0.55rem 0.8rem;
+  border-radius: 999px; min-width: 210px; outline: none;
+}
+.ad-search:focus { border-color: var(--sage); }
+.ad-row-acts a.btn { text-decoration: none; }

@@ -621,6 +621,31 @@ function adminRead(p) {
   });
   var claims = order.map(function (k) { return groups[k]; });
 
+  // The guest list. Duplicates are flagged rather than blocked: the same
+  // person may legitimately RSVP twice (changed their mind, or a typo the
+  // first time), so the couple decide which row is the real one.
+  var rsvpRows = getSheet("rsvp").getDataRange().getValues().slice(1);
+  var emailCount = {};
+  rsvpRows.forEach(function (r) {
+    var e = String(r[3] || "").trim().toLowerCase();
+    if (e) emailCount[e] = (emailCount[e] || 0) + 1;
+  });
+  var rsvps = rsvpRows.map(function (r, i) {
+    var e = String(r[3] || "").trim().toLowerCase();
+    return {
+      row: i + 2,
+      when: r[0] ? new Date(r[0]).toISOString().slice(0, 10) : "",
+      firstName: String(r[1] || ""),
+      lastName: String(r[2] || ""),
+      email: String(r[3] || ""),
+      phone: String(r[4] || ""),
+      side: String(r[5] || ""),
+      attending: String(r[6] || ""),
+      relationship: String(r[7] || ""),
+      dup: !!(e && emailCount[e] > 1),
+    };
+  }).reverse();
+
   // Everything a guest can post, so it can be moderated or cleared after testing
   var wishRows = getSheet("wish").getDataRange().getValues().slice(1);
   var wishes = wishRows.map(function (r, i) {
@@ -650,7 +675,7 @@ function adminRead(p) {
   }).reverse();
 
   return { ok: true, items: items, claims: claims, wishes: wishes, strokes: strokes,
-           bank: publicBank(), delivery: publicDelivery() };
+           rsvps: rsvps, bank: publicBank(), delivery: publicDelivery() };
 }
 
 function adminOp(p) {
@@ -679,6 +704,15 @@ function adminOp(p) {
   // hide flips the approved column, delete removes the row for good.
   if (op === "hide" || op === "show" || op === "drop") {
     var kind = String(p.kind || "");
+    // RSVP rows have no approved column, so only deletion applies to them
+    if (kind === "rsvp") {
+      if (op !== "drop") return { ok: false, error: "rsvp supports drop only" };
+      var rs = getSheet("rsvp");
+      var rr = Number(p.row);
+      if (!rr || rr < 2 || rr > rs.getLastRow()) return { ok: false, error: "bad row" };
+      rs.deleteRow(rr);
+      return { ok: true };
+    }
     if (kind !== "wish" && kind !== "stroke") return { ok: false, error: "bad kind" };
     var sh = getSheet(kind);
     var r = Number(p.row);

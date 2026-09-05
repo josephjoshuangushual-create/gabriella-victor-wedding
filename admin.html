@@ -8,8 +8,8 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Caveat:wght@400;600&family=Cormorant+Garamond:wght@300;400;500&family=Jost:wght@300;400;500&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="css/style.css?v=15">
-<link rel="stylesheet" href="css/admin.css?v=15">
+<link rel="stylesheet" href="css/style.css?v=16">
+<link rel="stylesheet" href="css/admin.css?v=16">
 </head>
 <body class="admin">
 
@@ -40,7 +40,8 @@
   <div class="ad-stats" id="adStats"></div>
 
   <nav class="ad-tabs" id="adTabs">
-    <button class="ad-tab active" type="button" data-view="board">Board</button>
+    <button class="ad-tab active" type="button" data-view="rsvp">RSVPs <i id="adCountRsvp"></i></button>
+    <button class="ad-tab" type="button" data-view="board">Board</button>
     <button class="ad-tab" type="button" data-view="unconfirmed">Unconfirmed <i id="adCountUnconfirmed"></i></button>
     <button class="ad-tab" type="button" data-view="received">Ordered &amp; received <i id="adCountRec"></i></button>
     <button class="ad-tab" type="button" data-view="links">Link health <i id="adCountLinks"></i></button>
@@ -49,7 +50,8 @@
   </nav>
 
   <main class="ad-body">
-    <section class="ad-view" id="viewBoard"></section>
+    <section class="ad-view" id="viewRsvp"></section>
+    <section class="ad-view" id="viewBoard" hidden></section>
     <section class="ad-view" id="viewUnconfirmed" hidden></section>
     <section class="ad-view" id="viewReceived" hidden></section>
     <section class="ad-view" id="viewLinks" hidden></section>
@@ -107,8 +109,8 @@
   </form>
 </div>
 
-<script src="js/config.js?v=15"></script>
-<script src="js/canvas-export.js?v=15"></script>
-<script src="js/admin.js?v=15"></script>
+<script src="js/config.js?v=16"></script>
+<script src="js/canvas-export.js?v=16"></script>
+<script src="js/admin.js?v=16"></script>
 </body>
 </html>

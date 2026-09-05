@@ -6,7 +6,9 @@ const backendReady = () => GV_SCRIPT_URL.startsWith("https://");
 let KEY = sessionStorage.getItem("gv_admin_key") || "";
 let DATA = { items: [], claims: [] };
 let STROKES = [];
-let view = "board";
+let view = "rsvp";
+let rsvpFilter = "all";
+let rsvpSearch = "";
 
 const $ = id => document.getElementById(id);
 const esc = s => String(s === null || s === undefined ? "" : s)
@@ -68,7 +70,7 @@ $("adTabs").querySelectorAll(".ad-tab").forEach(btn =>
   btn.addEventListener("click", () => {
     view = btn.dataset.view;
     $("adTabs").querySelectorAll(".ad-tab").forEach(b => b.classList.toggle("active", b === btn));
-    ["board", "unconfirmed", "received", "links", "canvas", "moderation"].forEach(v =>
+    ["rsvp", "board", "unconfirmed", "received", "links", "canvas", "moderation"].forEach(v =>
       $("view" + v.charAt(0).toUpperCase() + v.slice(1)).hidden = v !== view);
     if (view === "canvas") drawPreview();
   }));
@@ -151,6 +153,56 @@ function render() {
       </div>`).join("")
     : `<p class="ad-empty">All links checked recently and priced.</p>`;
 
+  /* RSVPs — the guest list, and the thing the couple check most often */
+  const rsvps = DATA.rsvps || [];
+  const yes = rsvps.filter(r => /accept/i.test(r.attending));
+  const no = rsvps.filter(r => /decline/i.test(r.attending));
+  const dups = rsvps.filter(r => r.dup);
+  $("adCountRsvp").textContent = rsvps.length ? "· " + rsvps.length : "";
+
+  const q = rsvpSearch.trim().toLowerCase();
+  const shown = rsvps.filter(r => {
+    if (rsvpFilter === "yes" && !/accept/i.test(r.attending)) return false;
+    if (rsvpFilter === "no" && !/decline/i.test(r.attending)) return false;
+    if (rsvpFilter === "dups" && !r.dup) return false;
+    if (!q) return true;
+    return [r.firstName, r.lastName, r.email, r.phone, r.side, r.relationship]
+      .join(" ").toLowerCase().includes(q);
+  });
+
+  const chip = (key, label, n) =>
+    `<button class="registry-filter${rsvpFilter === key ? " active" : ""}" type="button" data-rsvpf="${key}">${label}${n !== undefined ? ` (${n})` : ""}</button>`;
+
+  $("viewRsvp").innerHTML = rsvps.length ? `
+    <div class="ad-stats" style="margin-bottom:1.4rem">
+      <div class="ad-stat"><b>${yes.length}</b><span>Attending</span></div>
+      <div class="ad-stat"><b>${no.length}</b><span>Cannot come</span></div>
+      <div class="ad-stat"><b>${rsvps.length}</b><span>Total replies</span></div>
+      <div class="ad-stat"><b>${rsvps.filter(r => /bride/i.test(r.side)).length}</b><span>Bride's side</span></div>
+      <div class="ad-stat"><b>${rsvps.filter(r => /groom/i.test(r.side)).length}</b><span>Groom's side</span></div>
+    </div>
+    <div class="registry-head" style="margin-bottom:1.2rem">
+      <div class="registry-filters">
+        ${chip("all", "Everyone", rsvps.length)}${chip("yes", "Attending", yes.length)}${chip("no", "Cannot come", no.length)}${dups.length ? chip("dups", "Duplicates", dups.length) : ""}
+      </div>
+      <div class="ad-rsvp-tools">
+        <input type="search" id="adRsvpSearch" class="ad-search" placeholder="Search name, email, phone…" value="${esc(rsvpSearch)}">
+        <button class="btn btn-outline sm" type="button" id="adRsvpCsv">Download CSV</button>
+      </div>
+    </div>
+    ${shown.length ? shown.map(r => `<div class="ad-row">
+      <div class="ad-row-main">
+        <div class="ad-row-title">${esc(r.firstName)} ${esc(r.lastName)}${r.dup ? ` <span class="ad-qty" style="color:var(--terracotta)">duplicate email</span>` : ""}</div>
+        <div class="ad-row-sub">${esc(r.email)}${r.phone ? " · " + esc(r.phone) : ""}${r.side ? " · guest of " + esc(r.side) : ""}${r.relationship ? " · " + esc(r.relationship) : ""} · ${esc(r.when)}</div>
+      </div>
+      <span class="ad-pill ${/accept/i.test(r.attending) ? "received" : "released"}">${/accept/i.test(r.attending) ? "attending" : "declined"}</span>
+      <div class="ad-row-acts">
+        <a class="btn btn-outline sm" href="mailto:${esc(r.email)}">Email</a>
+        <button class="btn btn-outline sm ad-danger" data-mod="drop" data-kind="rsvp" data-row="${r.row}" data-label="${esc(r.firstName + " " + r.lastName)}'s RSVP">Delete</button>
+      </div>
+    </div>`).join("") : `<p class="ad-empty">No RSVPs match that.</p>`}`
+    : `<p class="ad-empty">No RSVPs yet. They appear here the moment a guest submits the form.</p>`;
+
   /* Moderation — everything a guest can post, so a test run leaves nothing behind */
   const wishes = DATA.wishes || [];
   const strokes = DATA.strokes || [];
@@ -204,6 +256,23 @@ function wireRowButtons() {
   }));
   document.querySelectorAll("[data-mail]").forEach(b =>
     b.addEventListener("click", () => openMail(b.dataset.mail, Number(b.dataset.row))));
+
+  document.querySelectorAll("[data-rsvpf]").forEach(b =>
+    b.addEventListener("click", () => { rsvpFilter = b.dataset.rsvpf; render(); }));
+
+  const searchBox = $("adRsvpSearch");
+  if (searchBox) {
+    searchBox.addEventListener("input", () => {
+      rsvpSearch = searchBox.value;
+      const pos = searchBox.selectionStart;
+      render();
+      const again = $("adRsvpSearch");
+      if (again) { again.focus(); again.setSelectionRange(pos, pos); }
+    });
+  }
+
+  const csvBtn = $("adRsvpCsv");
+  if (csvBtn) csvBtn.addEventListener("click", () => downloadRsvpCsv());
 
   document.querySelectorAll("[data-mod]").forEach(b => b.addEventListener("click", async () => {
     // deleting is permanent, so make them mean it
@@ -265,6 +334,27 @@ $("adMailForm").addEventListener("submit", async e => {
     $("adMailNote").className = "form-note error";
   }
 });
+
+/** Hand the planner or caterer a spreadsheet without giving them Sheet access. */
+function downloadRsvpCsv() {
+  const rows = DATA.rsvps || [];
+  if (!rows.length) return;
+  const cell = v => {
+    const s = String(v === null || v === undefined ? "" : v);
+    return /[",\n]/.test(s) ? '"' + s.replace(/"/g, '""') + '"' : s;
+  };
+  const head = ["Date", "First name", "Last name", "Email", "Phone", "Guest of", "Attending", "Relationship"];
+  const body = rows.map(r => [r.when, r.firstName, r.lastName, r.email, r.phone, r.side, r.attending, r.relationship].map(cell).join(","));
+  // BOM so Excel opens UTF-8 names correctly
+  const blob = new Blob(["\ufeff" + [head.join(","), ...body].join("\r\n")], { type: "text/csv;charset=utf-8" });
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(blob);
+  a.download = "rsvps-" + stamp() + ".csv";
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  setTimeout(() => URL.revokeObjectURL(a.href), 30000);
+}
 
 /* ═══════════ Canvas export ═══════════ */
 
