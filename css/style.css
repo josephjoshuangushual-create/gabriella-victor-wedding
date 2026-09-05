@@ -681,3 +681,18 @@ body.has-gift-bar .gifting { padding-bottom: 8rem; }
 .gift-mailnote .gm-spam { color: var(--sage); }
 .card-form.form-closed { opacity: 0.6; }
 .card-form.form-closed .btn { cursor: not-allowed; }
+
+/* ── Wish wall: text-only wishes and phone layout ── */
+.polaroid.note { padding-top: 22px; }
+.polaroid.note .wish-msg { margin-top: 0.2rem; font-size: 1.32rem; }
+
+@media (max-width: 620px) {
+  /* two columns rather than one, so the wall reads as a wall */
+  .wishes-wall { columns: 2 130px; column-gap: 0.8rem; }
+  .polaroid { padding: 7px 7px 10px; margin-bottom: 1rem; }
+  .polaroid .wish-msg { font-size: 1.05rem; line-height: 1.2; margin: 0.5rem 0.15rem 0.15rem; }
+  .polaroid.note .wish-msg { font-size: 1.1rem; }
+  .polaroid .wish-name { font-size: 0.85rem; }
+  .polaroid::before { width: 54px; height: 15px; top: -7px; }
+  .polaroid .mine-tag { font-size: 0.52rem; top: -20px; }
+}

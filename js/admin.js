@@ -313,7 +313,7 @@ function wireRowButtons() {
     const open = (DATA.settings || {}).rsvpOpen;
     if (open && !confirm("Close RSVPs? Guests will no longer be able to submit the form.")) return;
     toggle.disabled = true;
-    const out = await api({ action: "op", op: "setting", key: "rsvpOpen", value: open ? "no" : "yes" })
+    const out = await api({ action: "op", op: "setting", skey: "rsvpOpen", value: open ? "no" : "yes" })
       .catch(() => ({ ok: false }));
     if (out.ok) await refresh(); else toggle.disabled = false;
   });
@@ -324,7 +324,7 @@ function wireRowButtons() {
     msgBox.addEventListener("input", () => {
       clearTimeout(t);
       t = setTimeout(async () => {
-        await api({ action: "op", op: "setting", key: "rsvpClosedMsg", value: msgBox.value }).catch(() => {});
+        await api({ action: "op", op: "setting", skey: "rsvpClosedMsg", value: msgBox.value }).catch(() => {});
         if (DATA.settings) DATA.settings.rsvpClosedMsg = msgBox.value;   // keep without re-rendering mid-type
       }, 700);
     });

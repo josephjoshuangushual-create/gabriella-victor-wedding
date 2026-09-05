@@ -342,16 +342,25 @@ function esc(s) {
    viewport. The visitor's own wish (localStorage) is always pinned first. */
 const wishesWall = document.getElementById("wishesWall");
 const loadMoreBtn = document.getElementById("loadMoreWishes");
-const PAGE_SIZE = 24;
+// One column on a phone means 24 cards is a very long scroll; show fewer and
+// let people ask for more.
+const PAGE_SIZE = matchMedia("(max-width: 620px)").matches ? 8 : 24;
 let allWishes = [];
 let shownCount = 0;
 const myWish = JSON.parse(localStorage.getItem("gv_wish") || "null");
 
 function polaroidHTML(w, mine = false) {
-  const photo = w.photoUrl
+  // Without a selfie there is nothing to frame, so skip the photo block
+  // entirely rather than filling a whole square with a placeholder. The
+  // masonry layout handles the mixed heights, and a wall of text wishes
+  // becomes several times shorter to scroll.
+  const hasPhoto = !!w.photoUrl;
+  const photo = hasPhoto
     ? `<img class="ph" src="${esc(w.photoUrl)}" alt="Guest selfie" loading="lazy">`
-    : `<div class="ph-placeholder">🤍</div>`;
-  return `<div class="polaroid${mine ? " mine" : ""}">${mine ? '<span class="mine-tag">Your wish</span>' : ""}${photo}<p class="wish-msg">${esc(w.message)}</p><p class="wish-name">— ${esc(w.name)}</p></div>`;
+    : "";
+  return `<div class="polaroid${hasPhoto ? "" : " note"}${mine ? " mine" : ""}">`
+    + `${mine ? '<span class="mine-tag">Your wish</span>' : ""}${photo}`
+    + `<p class="wish-msg">${esc(w.message)}</p><p class="wish-name">— ${esc(w.name)}</p></div>`;
 }
 
 function renderWall() {

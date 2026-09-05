@@ -723,7 +723,9 @@ function adminOp(p) {
   }
 
   if (op === "setting") {
-    var k = String(p.key || "");
+    // NB: not `key` — that is already the admin password parameter, and the
+    // client sets it last, so a setting named `key` would be clobbered.
+    var k = String(p.skey || "");
     if (!setSetting(k, String(p.value === undefined ? "" : p.value))) return { ok: false, error: "unknown setting" };
     CacheService.getScriptCache().remove("registry");   // the site reads this from the catalog
     return { ok: true, key: k, value: getSetting(k) };
